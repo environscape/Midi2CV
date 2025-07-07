@@ -29,7 +29,7 @@ void setup() {
   pinMode(MODE_BUTTON, INPUT_PULLUP);  // D11按钮引脚(上拉输入)
   pinMode(OUTPUT_D12, OUTPUT);         // D12输出引脚
   pinMode(OUTPUT_D13, OUTPUT);         // D13输出引脚
-  view();                  // 初始化输出引脚状态
+  view();                              // 初始化输出引脚状态
 }
 
 void loop() {
@@ -46,11 +46,11 @@ void loop() {
     if (noteState) {
       // 发送Note On消息
       MIDI.sendNoteOn(NOTE_C3, VELOCITY, CHANNEL);
-      Serial.println("Note On: C3 (MIDI #48)");
+      // Serial.println("Note On: C3 (MIDI #48)");
     } else {
       // 发送Note Off消息
       MIDI.sendNoteOff(NOTE_C3, 0, CHANNEL);
-      Serial.println("Note Off: C3 (MIDI #48)");
+      // Serial.println("Note Off: C3 (MIDI #48)");
     }
   }
 
@@ -76,14 +76,14 @@ void loop() {
 
 // 新增：处理模式切换逻辑
 void handleModeSwitch() {
-  Serial.print(" d11 ");
-  Serial.print(digitalRead(11));
-  Serial.print(" d12 ");
-  Serial.print(digitalRead(12));
-  Serial.print(" d13 ");
-  Serial.print(digitalRead(13));
-  Serial.print(" mode ");
-  Serial.println(mode);
+  // Serial.print(" d11 ");
+  // Serial.print(digitalRead(11));
+  // Serial.print(" d12 ");
+  // Serial.print(digitalRead(12));
+  // Serial.print(" d13 ");
+  // Serial.print(digitalRead(13));
+  // Serial.print(" mode ");
+  // Serial.println(mode);
 
 
   if (digitalRead(11) == 1 && d11 == 0) {
