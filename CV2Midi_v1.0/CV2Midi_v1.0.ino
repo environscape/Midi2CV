@@ -101,7 +101,7 @@ void loop() {
   processAndSendMidi();
 
   // 延时避免过于频繁的采样
-  delay(1);
+  // delay(1);
 }
 
 // 读取所有模拟输入引脚
