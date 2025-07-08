@@ -163,4 +163,17 @@ void processCVInputs() {
         }
         break;
 
-      case NOTE_
+       
+      case NOTE_VEL:
+        // 直接映射CV值到MIDI力度 (30-127范围)
+        midiBuffer.velocity = constrain(map(cvValue, 0, ANALOG_MAX_VALUE, 30, 127), 0, 127);
+        break;
+        
+      case CONTROL_CHANGE: 
+        // 直接发送CC消息
+        byte ccValue = map(cvValue, 0, ANALOG_MAX_VALUE, 0, 127);
+        MIDI.sendControlChange(param, ccValue, channel);
+        break;
+    }
+  }
+}
