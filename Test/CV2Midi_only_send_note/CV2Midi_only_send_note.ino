@@ -22,18 +22,12 @@ void loop() {
   setMode();  // 新增：处理模式切换
   view();     // 更新输出引脚状态
 
-  unsigned long currentMillis = millis();
-  if (currentMillis - previousMillis >= 1000) {  // 每1秒切换一次音符状态
-    previousMillis = currentMillis;
-    noteState = !noteState;  // 切换状态
-
-    if (noteState) {
-      MIDI.sendNoteOn(48, 126, 3);  //Note Velocity Channel      // 发送Note On消息
-      // Serial.println("Note On: C3 (MIDI #48)");
-    } else {
-      MIDI.sendNoteOff(48, 0, 3);  // 发送Note Off消息
-      // Serial.println("Note Off: C3 (MIDI #48)");
-    }
+  if (analogRead(1) > 2048) {
+    MIDI.sendNoteOn(48, 126, 3);  //Note Velocity Channel      // 发送Note On消息
+    // Serial.println("Note On: C3 (MIDI #48)");
+  } else {
+    MIDI.sendNoteOff(48, 0, 3);  // 发送Note Off消息
+    // Serial.println("Note Off: C3 (MIDI #48)");
   }
 
   // 日志：读取并输出A0-A7的值（制表符分隔，便于在串口监视器中查看）打印日志有可能影响mid信号! lecheng
@@ -63,12 +57,7 @@ void setMode() {
   if (digitalRead(11) == 0 && d11 == 1) {
     d11 = 0;
   }
-  // Serial.print(" d11 ");
-  // Serial.print(digitalRead(11));
-  // Serial.print(" d12 ");
-  // Serial.print(digitalRead(12));
-  // Serial.print(" d13 ");
-  // Serial.print(digitalRead(13));
+
   // Serial.print(" mode ");
   // Serial.println(mode);
 }
