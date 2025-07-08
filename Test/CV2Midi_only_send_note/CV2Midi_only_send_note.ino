@@ -1,9 +1,31 @@
 #include <MIDI.h>
 
+//音符选择 音符触发 音符力度
+//cc数值
+
 MIDI_CREATE_DEFAULT_INSTANCE();
 
 int mode = 0;  // 当前模式(0-3)
 int d11 = 0;   // 开关临时
+int a1 = 0;    // 开关临时
+
+enum MidiMessageType {
+  CONTROL_CHANGE,  // CC消息
+  NOTE_NUMBER,     // 音符编号配置
+  NOTE_ON_OFF,     // 音符开关控制
+  NOTE_VEL,        // 音符力度
+};
+
+const byte cvConfig[8][3] = {
+  { 3, NOTE_NUMBER, 0 },     // CV0: 通道3, 音符编号
+  { 3, NOTE_ON_OFF, 0 },     // CV1: 通道3, 音符开关
+  { 3, NOTE_VEL, 0 },        // CV2: 通道3, 音符力度
+  { 3, CONTROL_CHANGE, 1 },  // CV3: 通道3, CC编号1
+  { 3, CONTROL_CHANGE, 2 },  // CV4: 通道3, CC编号2
+  { 3, CONTROL_CHANGE, 3 },  // CV5: 通道3, CC编号3
+  { 3, CONTROL_CHANGE, 4 },  // CV6: 通道3, CC编号4
+  { 4, CONTROL_CHANGE, 5 }   // CV7: 通道4, CC编号5
+};
 
 void setup() {
   MIDI.begin(MIDI_CHANNEL_OMNI);  // 初始化MIDI
@@ -22,11 +44,15 @@ void loop() {
   setMode();  // 新增：处理模式切换
   view();     // 更新输出引脚状态
 
-  if (analogRead(1) > 2048) {
+  if (analogRead(1) > 2048 && a1 == 0) {
+    a1 = 1;
     MIDI.sendNoteOn(48, 126, 3);  //Note Velocity Channel      // 发送Note On消息
     // Serial.println("Note On: C3 (MIDI #48)");
   } else {
-    MIDI.sendNoteOff(48, 0, 3);  // 发送Note Off消息
+    a1 = 0;
+    MIDI.sendControlChange(123, 0, 3);  // 控制器编号123代表All Notes Off
+
+    // MIDI.sendNoteOff(48, 0, 3);  // 发送Note Off消息
     // Serial.println("Note Off: C3 (MIDI #48)");
   }
 
