@@ -1,211 +1,166 @@
 #include <MIDI.h>
 
-// 定义MIDI消息类型枚举
 enum MidiMessageType {
   CONTROL_CHANGE,  // CC消息
   NOTE_NUMBER,     // 音符编号配置
   NOTE_ON_OFF,     // 音符开关控制
-  CLOCK_START,     // 时钟开始
-  CLOCK_STOP,      // 时钟停止
-  CLOCK_TICK       // 时钟节拍
+  NOTE_VEL,        // 音符力度
+};
+int CVMode = 0;  // 当前模式(0-3)
+// 四种模式的CV配置表：[通道, 消息类型, 参数值]
+const byte CVConfig0[8][3] = {
+  { 3, NOTE_NUMBER, 0 },      // CV0: 通道3, 音符编号
+  { 3, NOTE_ON_OFF, 0 },      // CV1: 通道3, 音符开关
+  { 3, NOTE_VEL, 0 },         // CV2: 通道3, 音符力度
+  { 3, CONTROL_CHANGE, 54 },  // CV3: 通道3, CC编号1
+  { 3, CONTROL_CHANGE, 56 },  // CV4: 通道3, CC编号2
+  { 3, CONTROL_CHANGE, 74 },  // CV5: 通道3, CC编号3
+  { 3, CONTROL_CHANGE, 71 },  // CV6: 通道3, CC编号4
+  { 3, CONTROL_CHANGE, 93 }   // CV7: 通道4, CC编号5
 };
 
-// 配置数组 [输入编号][配置参数]
-// 参数含义: [MIDI通道(1-16), MIDI消息类型, 数据1(CC编号/音符基准编号), 数据2(默认速度/值)]
-const byte cvConfig[8][4] = {
-  { 3, NOTE_NUMBER, 20, 64 },    // CV0: 通道1, CC消息, CC编号20, 默认值64
-  { 3, NOTE_ON_OFF, 60, 100 },   // CV1: 通道2, 音符编号, 基准音符编号60(C4), 默认速度100
-  { 4, NOTE_NUMBER, 0, 0 },      // CV2: 通道2, 音符开关
-  { 4, NOTE_ON_OFF, 7, 64 },     // CV3: 通道3, CC消息, CC编号7(音量), 默认值64
-  { 10, NOTE_NUMBER, 1, 0 },     // CV4: 通道4, CC消息, CC编号1(调制轮), 默认值0
-  { 10, NOTE_ON_OFF, 0, 0 },     // CV5: 通道1, 时钟开始
-  { 3, CONTROL_CHANGE, 1, 64 },  // CV6: 通道1, 时钟停止
-  { 4, CONTROL_CHANGE, 2, 64 }   // CV7: 通道1, 时钟节拍
+const byte CVConfig1[8][3] = {
+  { 4, NOTE_NUMBER, 0 },     // CV0: 通道4, 音符编号
+  { 4, NOTE_ON_OFF, 0 },     // CV1: 通道4, 音符开关
+  { 4, NOTE_VEL, 0 },        // CV2: 通道4, 音符力度
+  { 4, CONTROL_CHANGE, 6 },  // CV3: 通道4, CC编号6
+  { 4, CONTROL_CHANGE, 7 },  // CV4: 通道4, CC编号7
+  { 4, CONTROL_CHANGE, 8 },  // CV5: 通道4, CC编号8
+  { 4, CONTROL_CHANGE, 9 },  // CV6: 通道4, CC编号9
+  { 4, CONTROL_CHANGE, 10 }  // CV7: 通道5, CC编号10
 };
-// const byte cvConfig[8][4] = {
-//   { 1, CONTROL_CHANGE, 20, 64 },  // CV0: 通道1, CC消息, CC编号20, 默认值64
-//   { 2, NOTE_NUMBER, 60, 100 },    // CV1: 通道2, 音符编号, 基准音符编号60(C4), 默认速度100
-//   { 2, NOTE_ON_OFF, 0, 0 },       // CV2: 通道2, 音符开关
-//   { 3, CONTROL_CHANGE, 7, 64 },   // CV3: 通道3, CC消息, CC编号7(音量), 默认值64
-//   { 4, CONTROL_CHANGE, 1, 0 },    // CV4: 通道4, CC消息, CC编号1(调制轮), 默认值0
-//   { 1, CLOCK_START, 0, 0 },       // CV5: 通道1, 时钟开始
-//   { 1, CLOCK_STOP, 0, 0 },        // CV6: 通道1, 时钟停止
-//   { 1, CLOCK_TICK, 0, 0 }         // CV7: 通道1, 时钟节拍
-// };
 
-/******************************************以下程序不要改动***********************************************/
+const byte CVConfig2[8][3] = {
+  { 3, NOTE_NUMBER, 0 },      // CV0: 通道3, 音符编号
+  { 3, NOTE_ON_OFF, 0 },      // CV1: 通道3, 音符开关
+  { 3, NOTE_VEL, 0 },         // CV2: 通道3, 音符力度
+  { 3, CONTROL_CHANGE, 80 },  // CV3: 通道3, CC编号1
+  { 3, CONTROL_CHANGE, 81 },  // CV4: 通道3, CC编号2
+  { 3, CONTROL_CHANGE, 82 },  // CV5: 通道3, CC编号3
+  { 3, CONTROL_CHANGE, 83 },  // CV6: 通道3, CC编号4
+  { 3, CONTROL_CHANGE, 84 }   // CV7: 通道4, CC编号5
+};
 
-// MIDI设置
+const byte CVConfig3[8][3] = {
+  { 10, NOTE_NUMBER, 0 },      // CV0: 通道6, 音符编号
+  { 10, NOTE_ON_OFF, 0 },      // CV1: 通道6, 音符开关
+  { 10, NOTE_VEL, 0 },         // CV2: 通道6, 音符力度
+  { 10, CONTROL_CHANGE, 14 },  // CV3: 通道6, CC编号16
+  { 10, CONTROL_CHANGE, 15 },  // CV4: 通道6, CC编号17
+  { 10, CONTROL_CHANGE, 46 },  // CV5: 通道6, CC编号18
+  { 10, CONTROL_CHANGE, 47 },  // CV6: 通道6, CC编号19
+  { 10, CONTROL_CHANGE, 50 }   // CV7: 通道7, CC编号20
+};
+
 MIDI_CREATE_DEFAULT_INSTANCE();
 
-// 音符状态结构体
-struct NoteState {
-  byte number;      // 当前音符编号
-  bool isOn;        // 音符是否开启
-  byte velocity;    // 音符速度
-  byte lastNumber;  // 上次发送的音符编号（用于优化）
+
+// 当前使用的配置表指针
+const byte (*currentConfig)[8][3] = &CVConfig0;
+
+// MIDI消息缓冲区
+struct MidiBuffer {
+  bool noteOn = false;   // 音符状态
+  byte noteNumber = 60;  // 默认中央C (C4)
+  byte velocity = 100;   // 默认力度
+  byte channel = 1;      // 默认通道
 };
 
-// CC项结构体（存储单个CC的编号和值）
-struct CCItem {
-  byte cc;     // CC编号
-  byte value;  // CC值
-};
+MidiBuffer midiBuffer;  // MIDI消息缓冲区
 
-// CC消息缓存结构体（每个通道最多存储8个CC项）
-struct CCCache {
-  CCItem items[8];  // CC项数组
-  byte count;       // 已存储的CC数量
-};
-
-// 模拟输入值和状态存储
-int analogValues[8];
-bool lastStates[8] = { false };  // 用于存储上次状态，处理音符和时钟消息
-
-// 音符状态管理数组 (最多支持16个MIDI通道)
-NoteState noteStates[16];
-
-// CC消息缓存数组 (最多支持16个MIDI通道)
-CCCache ccCaches[16];
-
-// 时钟消息缓存（记录每个时钟消息的上次状态）
-bool lastClockStates[3] = { false, false, false };  // START, STOP, TICK
+// int ANALOG_MAX_VALUE = 1023   ; //Arduino
+int ANALOG_MAX_VALUE = 4095;  //Lgt8f328p
 
 void setup() {
-  // 初始化MIDI
-  MIDI.begin(MIDI_CHANNEL_OMNI);
+  MIDI.begin(MIDI_CHANNEL_OMNI);  // 初始化MIDI
+  // Serial.begin(31250);            // 初始化串口通信（用于调试）
 
-  // 初始化音符状态
-  for (int i = 0; i < 16; i++) {
-    noteStates[i].number = 60;
-    noteStates[i].isOn = false;
-    noteStates[i].velocity = 100;
-    noteStates[i].lastNumber = 0;
-  }
-
-  // 初始化CC缓存
-  for (int ch = 0; ch < 16; ch++) {
-    ccCaches[ch].count = 0;
-    for (int i = 0; i < 8; i++) {
-      ccCaches[ch].items[i].cc = 0;
-      ccCaches[ch].items[i].value = 0;
-    }
-  }
+  pinMode(11, INPUT_PULLUP);  // D11按钮引脚(上拉输入)
+  pinMode(12, OUTPUT);        // D12输出引脚
+  pinMode(13, OUTPUT);        // D13输出引脚
 }
 
 void loop() {
-  // 读取所有模拟输入引脚
-  readAnalogInputs();
-
-  // 处理并发送MIDI消息
-  processAndSendMidi();
-
-  // 延时避免过于频繁的采样
-  // delay(1);
+  setMode();          // 处理模式切换
+  view();             // 更新输出引脚状态并选择配置表
+  processCVInputs();  // 处理CV输入并发送MIDI消息
 }
 
-// 读取所有模拟输入引脚
-void readAnalogInputs() {
-  for (int i = 0; i < 8; i++) {
-    analogValues[i] = analogRead(i);
-  }
-}
-
-// 在CC缓存中查找指定CC编号的索引，未找到返回-1
-int findCCIndex(byte channel, byte cc) {
-  CCCache* cache = &ccCaches[channel - 1];
-  for (int i = 0; i < cache->count; i++) {
-    if (cache->items[i].cc == cc) {
-      return i;
+// 处理模式切换逻辑
+int d11 = 0;  // 开关临时变量
+void setMode() {
+  if (digitalRead(11) == LOW && d11 == 0) {  // 按钮按下
+    d11 = 1;
+    CVMode = (CVMode + 1) % 4;  // 循环切换0-3
+    // 模式切换时关闭所有音符
+    for (int ch = 1; ch <= 16; ch++) {
+      MIDI.sendControlChange(123, 0, ch);
     }
+    midiBuffer.noteOn = false;
   }
-  return -1;
-}
-
-// 添加或更新CC缓存中的值
-void updateCCCache(byte channel, byte cc, byte value) {
-  CCCache* cache = &ccCaches[channel - 1];
-  int index = findCCIndex(channel, cc);
-
-  if (index >= 0) {
-    // 更新现有CC值
-    cache->items[index].value = value;
-  } else if (cache->count < 8) {
-    // 添加新CC项（仅当未超过最大数量时）
-    cache->items[cache->count].cc = cc;
-    cache->items[cache->count].value = value;
-    cache->count++;
+  if (digitalRead(11) == HIGH && d11 == 1) {  // 按钮释放
+    d11 = 0;
   }
-  // 超过8个时忽略（可根据需要实现替换策略）
 }
 
-// 获取CC缓存中的值，未找到返回0
-byte getCCValue(byte channel, byte cc) {
-  int index = findCCIndex(channel, cc);
-  return (index >= 0) ? ccCaches[channel - 1].items[index].value : 0;
+// 根据当前模式更新D12和D13状态并选择配置表
+void view() {
+  switch (CVMode) {
+    case 0:
+      digitalWrite(12, HIGH);
+      digitalWrite(13, HIGH);
+      currentConfig = &CVConfig0;
+      break;
+    case 1:
+      digitalWrite(12, HIGH);
+      digitalWrite(13, LOW);
+      currentConfig = &CVConfig1;
+      break;
+    case 2:
+      digitalWrite(12, LOW);
+      digitalWrite(13, HIGH);
+      currentConfig = &CVConfig2;
+      break;
+    case 3:
+      digitalWrite(12, LOW);
+      digitalWrite(13, LOW);
+      currentConfig = &CVConfig3;
+      break;
+  }
 }
 
-// 处理并发送MIDI消息
-void processAndSendMidi() {
+// 处理所有CV输入并发送相应的MIDI消息
+void processCVInputs() {
+  bool newNoteOnState = false;
+
+  // 读取并处理A0-A7输入
   for (int i = 0; i < 8; i++) {
-    byte channel = cvConfig[i][0];
-    byte messageType = cvConfig[i][1];
-    byte data1 = cvConfig[i][2];
-    byte data2 = cvConfig[i][3];
-
-    bool currentState = false;
-    byte value = 0;
+    int cvValue = analogRead(i);
+    byte channel = (*currentConfig)[i][0];
+    MidiMessageType messageType = static_cast<MidiMessageType>((*currentConfig)[i][1]);
+    byte param = (*currentConfig)[i][2];
 
     switch (messageType) {
-      case CONTROL_CHANGE:
-        // 将模拟值映射到MIDI范围(0-127)
-        value = map(analogValues[i], 0, 1023, 0, 127);
-
-        // 仅在值变化时发送CC消息
-        byte lastValue = getCCValue(channel, data1);
-        if (value != lastValue) {
-          MIDI.sendControlChange(data1, value, channel);
-          updateCCCache(channel, data1, value);
-        }
-        break;
-
       case NOTE_NUMBER:
-        // 将模拟值映射到音符编号范围(0-127)
-        value = map(analogValues[i], 0, 1023, data1 - 24, data1 + 24);
-        value = constrain(value, 0, 127);
-        noteStates[channel - 1].number = value;
+        // 直接映射CV值到MIDI音符编号 (C0-C8范围)
+        midiBuffer.noteNumber = constrain(map(cvValue, 0, ANALOG_MAX_VALUE, 12, 108), 0, 127);
         break;
 
       case NOTE_ON_OFF:
-        // 音符开关基于固定阈值512触发
-        currentState = analogValues[i] > 512;
-        if (currentState != lastStates[i]) {
-          NoteState* note = &noteStates[channel - 1];
-          if (currentState && (!note->isOn || note->number != note->lastNumber)) {
-            MIDI.sendNoteOn(note->number, note->velocity, channel);
-            note->isOn = true;
-            note->lastNumber = note->number;
-          } else if (!currentState && note->isOn) {
-            MIDI.sendNoteOff(note->number, note->velocity, channel);
-            note->isOn = false;
+        // 音符开关控制
+        newNoteOnState = (cvValue > ANALOG_MAX_VALUE / 2);
+        if (newNoteOnState != midiBuffer.noteOn) {
+          midiBuffer.noteOn = newNoteOnState;
+          midiBuffer.channel = channel;
+
+          if (newNoteOnState) {
+            // 发送Note On消息
+            MIDI.sendNoteOn(midiBuffer.noteNumber, midiBuffer.velocity, channel);
+          } else {
+            // 发送All Notes Off消息
+            MIDI.sendControlChange(123, 0, channel);
           }
-          lastStates[i] = currentState;
         }
         break;
 
-      case CLOCK_START:
-      case CLOCK_STOP:
-      case CLOCK_TICK:
-        // 时钟消息基于固定阈值512触发
-        currentState = analogValues[i] > 512;
-        int clockType = messageType - CLOCK_START;
-        if (currentState != lastClockStates[clockType]) {
-          // if (messageType == CLOCK_START && currentState) MIDI.sendRealTime(MIDI_START);
-          // else if (messageType == CLOCK_STOP && !currentState) MIDI.sendRealTime(MIDI_STOP);
-          // else if (messageType == CLOCK_TICK && currentState) MIDI.sendRealTime(MIDI_CLOCK);
-          lastClockStates[clockType] = currentState;
-        }
-        break;
-    }
-  }
-}
+      case NOTE_
