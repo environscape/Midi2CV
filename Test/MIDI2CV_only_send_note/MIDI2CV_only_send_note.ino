@@ -31,7 +31,7 @@ void loop() {
       MIDI.sendNoteOn(48, 126, 3);  //Note Velocity Channel      // 发送Note On消息
       // Serial.println("Note On: C3 (MIDI #48)");
     } else {
-      MIDI.sendNoteOff(48, 0, CHANNEL);  // 发送Note Off消息
+      MIDI.sendNoteOff(48, 0, 3);  // 发送Note Off消息
       // Serial.println("Note Off: C3 (MIDI #48)");
     }
   }
@@ -77,20 +77,20 @@ void setMode() {
 void view() {
   switch (mode) {
     case 0:
-      digitalWrite(OUTPUT_D12, HIGH);
-      digitalWrite(OUTPUT_D13, HIGH);
+      digitalWrite(12, HIGH);
+      digitalWrite(13, HIGH);
       break;
     case 1:
-      digitalWrite(OUTPUT_D12, HIGH);
-      digitalWrite(OUTPUT_D13, LOW);
+      digitalWrite(12, HIGH);
+      digitalWrite(13, LOW);
       break;
     case 2:
-      digitalWrite(OUTPUT_D12, LOW);
-      digitalWrite(OUTPUT_D13, HIGH);
+      digitalWrite(12, LOW);
+      digitalWrite(13, HIGH);
       break;
     case 3:
-      digitalWrite(OUTPUT_D12, LOW);
-      digitalWrite(OUTPUT_D13, LOW);
+      digitalWrite(12, LOW);
+      digitalWrite(13, LOW);
       break;
   }
 }
