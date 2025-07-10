@@ -8,10 +8,10 @@ enum MidiMessageType {
   NOTE_ON_OFF,     // 音符开关控制
   NOTE_VEL,        // 音符力度
 };
-int CVMode = 0;  // 当前模式(0-3)
+int CVPreset = 0;  // 当前模式(0-3)
 /*************************************请在下方更改您的配置参数 右侧双斜杠是说明文字********************************************/
 //模式1无灯
-const byte CVConfig0[8][3] = {
+const byte CVPreset1[8][3] = {
   { 3, NOTE_NUMBER, 0 },       // CV0: 通道3, 音符编号
   { 3, NOTE_ON_OFF, 0 },       // CV1: 通道3, 音符开关
   { 3, NOTE_VEL, 0 },          // CV2: 通道3, 音符力度
@@ -22,7 +22,7 @@ const byte CVConfig0[8][3] = {
   { 10, CONTROL_CHANGE, 50 }   // CV7: 通道10, CC编号50
 };
 //模式2绿灯
-const byte CVConfig1[8][3] = {
+const byte CVPreset2[8][3] = {
   { 3, NOTE_NUMBER, 0 },
   { 3, NOTE_ON_OFF, 0 },
   { 3, NOTE_VEL, 0 },
@@ -33,7 +33,7 @@ const byte CVConfig1[8][3] = {
   { 3, CONTROL_CHANGE, 93 }
 };
 //模式3红灯
-const byte CVConfig2[8][3] = {
+const byte CVPreset3[8][3] = {
   { 4, NOTE_NUMBER, 0 },
   { 4, NOTE_ON_OFF, 0 },
   { 4, NOTE_VEL, 0 },
@@ -44,7 +44,7 @@ const byte CVConfig2[8][3] = {
   { 4, CONTROL_CHANGE, 93 }
 };
 //模式4黄灯
-const byte CVConfig3[8][3] = {
+const byte CVPreset4[8][3] = {
   { 10, CONTROL_CHANGE, 14 },
   { 10, CONTROL_CHANGE, 17 },
   { 10, CONTROL_CHANGE, 40 },
@@ -60,7 +60,7 @@ MIDI_CREATE_DEFAULT_INSTANCE();
 
 
 // 当前使用的配置表指针
-const byte (*currentConfig)[8][3] = &CVConfig0;
+const byte (*currentConfig)[8][3] = &CVPreset1;
 
 // MIDI消息缓冲区
 struct MidiBuffer {
@@ -77,10 +77,10 @@ int ANALOG_MAX_VALUE = 4095;  // Lgt8f328p
 int EEPROM_ADDRESS = 0;       // EEPROM存储地址
 
 void setup() {
-  // 从EEPROM读取保存的CVMode值
+  // 从EEPROM读取保存的CVPreset值
   byte savedMode = EEPROM.read(EEPROM_ADDRESS);
   if (savedMode < 4) {  // 验证读取的值是否有效
-    CVMode = savedMode;
+    CVPreset = savedMode;
   }
 
   MIDI.begin(MIDI_CHANNEL_OMNI);  // 初始化MIDI
@@ -109,9 +109,9 @@ int d11 = 0;  // 开关临时变量
 void setMode() {
   if (digitalRead(11) == LOW && d11 == 0) {  // 按钮按下
     d11 = 1;
-    CVMode = (CVMode + 1) % 4;  // 循环切换0-3
+    CVPreset = (CVPreset + 1) % 4;  // 循环切换0-3
 
-    EEPROM.write(EEPROM_ADDRESS, CVMode);  // 使用update()方法自动检查并写入（仅在值不同时执行写入）//这里由于按钮只会执行一次且必然改变 所以使用write方法
+    EEPROM.write(EEPROM_ADDRESS, CVPreset);  // 使用update()方法自动检查并写入（仅在值不同时执行写入）//这里由于按钮只会执行一次且必然改变 所以使用write方法
 
     // 模式切换时关闭所有音符
     for (int ch = 1; ch <= 16; ch++) {
@@ -126,26 +126,26 @@ void setMode() {
 
 // 根据当前模式更新D12和D13状态并选择配置表
 void view() {
-  switch (CVMode) {
+  switch (CVPreset) {
     case 0:
       digitalWrite(12, LOW);
       digitalWrite(13, LOW);
-      currentConfig = &CVConfig0;
+      currentConfig = &CVPreset1;
       break;
     case 1:
       digitalWrite(12, LOW);
       digitalWrite(13, HIGH);
-      currentConfig = &CVConfig1;
+      currentConfig = &CVPreset2;
       break;
     case 2:
       digitalWrite(12, HIGH);
       digitalWrite(13, LOW);
-      currentConfig = &CVConfig2;
+      currentConfig = &CVPreset3;
       break;
     case 3:
       digitalWrite(12, HIGH);
       digitalWrite(13, HIGH);
-      currentConfig = &CVConfig3;
+      currentConfig = &CVPreset4;
       break;
   }
 }
