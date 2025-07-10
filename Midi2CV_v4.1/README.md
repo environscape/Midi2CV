@@ -1,47 +1,125 @@
-# Midi2CV_Trs V4.1 使用手册
-
-## 硬件及接口介绍:  
-
-1xTrs Midi In(可通过跳线盘切换Trs TypeA/B)  
-1xClock Out*(可通过cc24调整clock倍速**)  
-2xNote Out(CV范围0-5V)  
-2xGate Out(与音对应的门0-5V)  
-3xCV Out(Midi CC信息转化而来的CV信号0-5V)  
-
-*clock功能需要您的midi信号发出设备在设置中开启Clock Send(时钟同步发送)  否则将无法收到时钟讯号  
-**clock sync功能需要您的midi信号发出设备在设置中开启Transport Send(走带控制发送) 否则无法根据播放同步时钟,时钟将自行周期触发  
-
-## 硬件使用说明  
-10p电源接口位于模块上方，接上电源时请注意红线方向与10p灰色排线保持持一致(虽然模块带有电源反接保护功能，但是依然要注意)。  
-当模块接上电源线并供电时，三盏提示灯在开机时将会点亮三秒，用以提示用户模块供电正常。  
-您可以查询您的Trs MIDI线的类型，模块出厂时，跳线帽都被设置成了Trs Type A类型。  
-当模块接上Trs MIDI线之后，如果您的MIDI设备有开启时钟发送，模块的第一盏灯将会跟随MIDI设备的时钟闪动。这可以用于作为您的MIDI信号是否正常发送的充分判断依据。  
-当MIDI设备有发送Channel1的音符，通常第二盏灯会随音符的note on亮起。第三盏灯也是同理。  
-
-## 软件功能介绍:   
-#### Midi设备可以通过CC10切换以下3种模式,如果10秒内没有MIDI信号输入,则进入概率模式  
-|模式名称/接口名称|Clock|Note1|Gate1|Note2|Gate2|CV1|CV2|CV3|
-|:-------------:|:-------:|:-------:|:-------:|:-------:|:-------:|:-------:|:-------:|:-------:|
-|Midi:通道1&2模式|Clock|Ch1NotePitch|Ch1NoteOn|Ch2NotePitch|Ch2NoteOn|Vel1|Vel2|Mod|
-|Midi:通道3&4模式|Clock1/2|Ch3NotePitch|Ch3NoteOn|Ch4NotePitch|Ch4NoteOn|Vel1|Vel2|Mod|
-|Midi:复音模式|Clock|Ch1Poly1Pitch|Ch1Poly1On|Ch1Poly2Pitch|Ch1Poly2On|Vel1|Vel2|Mod|   
-|概率模式***|Trig In|75%RandTrig|50%RandGate|25%RandGate|GateRandLength|RandVoltage|RandVoltageInv|RandVoltage1/2|
-
-***如果任意时刻收到MIDI信号则即刻回到MIDI模式  
-敬请期待更多功能更新
-
-## 固件更新说明  
-1.请安装arduino IDE  
-2.请安装midi依赖库: https://github.com/FortySevenEffects/arduino_midi_library 下载zip 并用arduino IDE的库管理器安装该zip  
-3.下载当前Midi2CV固件程序,打开项目中对应的.ino 文件(使用Arduino IDE打开)  
-4.进入arduino IDE的界面;此时,使用usb数据线将您的模块连接至计算机:  
-界面左上角找到长方形框,点击后下拉选中您的usb连接的com口号码,然后在列表中找到Arduino Nano,右边usb需要再次选择一下com口号码 然后按确定  
-上方菜单栏:工具/tools > Processror > Atmega168(或328p等 由于不同版本可能用的控制器版本略有差异,若有不成功则可以都试试看)  
-以上对arduino IDE的选择设备操作只需做一次,如果更换.ino则需要重新选择  
-5.点击左上方第二个叫做 上传 的按钮 等待右下方的提示信息直到提示 上传完成 并重新装回跳线帽 整个上传程序流程完成  
+Midi2CV\_Trs V4.1 使用手册
 
 
-## 版本更新说明
-1.三个cv输出的精度提升，减少波纹
-2.更新功能说明
 
+一、硬件及接口介绍
+
+
+
+
+
+| 接口类型&#xA;           | 说明&#xA;                                 |
+| ------------------- | --------------------------------------- |
+| 1x Trs Midi In&#xA; | MIDI 输入接口，可通过跳线盘切换 Trs Type A/B 类型&#xA; |
+| 1x Clock Out&#xA;   | 时钟输出接口（可通过 CC24 调整时钟倍速）&#xA;            |
+| 2x Note Out&#xA;    | 音符输出接口（CV 范围 0-5V）&#xA;                 |
+| 2x Gate Out&#xA;    | 门控输出接口（与音符对应的门控信号，0-5V）&#xA;            |
+| 3x CV Out&#xA;      | MIDI CC 信息转换后的 CV 信号输出（0-5V）&#xA;       |
+
+### 补充说明&#xA;
+
+
+
+*   \*Clock 功能需 MIDI 信号源在设置中开启 “Clock Send（时钟同步发送）”，否则无法接收时钟信号。
+
+
+*   \*\*Clock Sync 功能需 MIDI 信号源在设置中开启 “Transport Send（走带控制发送）”，否则时钟将自行周期触发，无法随播放同步。
+
+
+二、硬件使用说明
+
+
+
+
+
+1.  **电源连接**
+
+    10p 电源接口位于模块上方，连接时需注意红线方向与 10p 灰色排线保持一致（模块内置电源反接保护功能，仍建议规范操作）。
+
+
+2.  **开机提示**
+
+    模块接通电源后，三盏提示灯将点亮 3 秒，用于确认供电正常。
+
+
+3.  **跳线设置**
+
+    模块出厂时，跳线帽默认设置为 Trs Type A 类型，可根据您使用的 Trs MIDI 线类型调整。
+
+
+4.  **信号判断**
+
+*   若 MIDI 设备已开启时钟发送，第一盏提示灯将随 MIDI 时钟信号闪动，可作为 MIDI 信号正常发送的判断依据。
+
+
+*   当 MIDI 设备发送 Channel 1 的音符时，第二盏灯随 Note On 信号亮起；第三盏灯同理（对应其他通道或功能）。
+
+
+三、软件功能介绍
+
+
+
+### 模式切换&#xA;
+
+MIDI 设备可通过 CC10 切换以下 3 种模式；若 10 秒内无 MIDI 信号输入，将自动进入概率模式。
+
+
+
+
+| 模式名称 / 接口名称&#xA;     | Clock&#xA;    | Note1&#xA;           | Gate1&#xA;         | Note2&#xA;           | Gate2&#xA;            | CV1&#xA;          | CV2&#xA;              | CV3&#xA;             |
+| -------------------- | ------------- | -------------------- | ------------------ | -------------------- | --------------------- | ----------------- | --------------------- | -------------------- |
+| Midi: 通道 1&2 模式&#xA; | Clock&#xA;    | Ch1 Note Pitch&#xA;  | Ch1 Note On&#xA;   | Ch2 Note Pitch&#xA;  | Ch2 Note On&#xA;      | Vel1&#xA;         | Vel2&#xA;             | Mod&#xA;             |
+| Midi: 通道 3&4 模式&#xA; | Clock1/2&#xA; | Ch3 Note Pitch&#xA;  | Ch3 Note On&#xA;   | Ch4 Note Pitch&#xA;  | Ch4 Note On&#xA;      | Vel1&#xA;         | Vel2&#xA;             | Mod&#xA;             |
+| Midi: 复音模式&#xA;      | Clock&#xA;    | Ch1 Poly1 Pitch&#xA; | Ch1 Poly1 On&#xA;  | Ch1 Poly2 Pitch&#xA; | Ch1 Poly2 On&#xA;     | Vel1&#xA;         | Vel2&#xA;             | Mod&#xA;             |
+| 概率模式 \*\*\*&#xA;     | Trig In&#xA;  | 75% Rand Trig&#xA;   | 50% Rand Gate&#xA; | 25% Rand Gate&#xA;   | Gate Rand Length&#xA; | Rand Voltage&#xA; | Rand Voltage Inv&#xA; | Rand Voltage1/2&#xA; |
+
+> \*** 注：任意时刻收到 MIDI 信号，将即刻退出概率模式，返回 MIDI 模式。
+>
+
+四、固件更新说明
+
+
+
+
+
+1.  安装 Arduino IDE（官方下载地址：[https://www.arduino.cc/en/software](https://www.arduino.cc/en/software)）。
+
+
+2.  安装 MIDI 依赖库：下载 [https://github.com/FortySevenEffects/arduino\_midi\_library](https://github.com/FortySevenEffects/arduino_midi_library) 的 ZIP 包，通过 Arduino IDE 的 “库管理器” 导入安装。
+
+
+3.  下载 Midi2CV 固件程序，使用 Arduino IDE 打开对应的`.ino`文件。
+
+
+4.  连接设备：用 USB 数据线将模块连接至计算机，在 Arduino IDE 界面左上角的 “设备选择框” 中，下拉选择模块对应的 COM 口；在设备列表中选择 “Arduino Nano”，并确认 COM 口无误。
+
+
+5.  配置处理器：通过菜单栏 “工具> Processor” 选择对应型号（通常为 Atmega168 或 328p，若上传失败可尝试切换）。
+
+
+> 注：设备选择操作仅需配置一次，更换
+>
+> `.ino`
+>
+> 文件时需重新确认。
+>
+
+
+
+1.  点击左上角 “上传” 按钮（右箭头图标），等待右下角提示 “上传完成” 后，重新装回跳线帽，完成固件更新。
+
+
+五、版本更新说明
+
+
+
+
+
+1.  优化 3 路 CV 输出的精度，减少信号波纹。
+
+
+2.  完善功能说明文档，补充模式切换及接口映射细节。
+
+
+> （注：文档部分内容可能由 AI 生成）
+>
