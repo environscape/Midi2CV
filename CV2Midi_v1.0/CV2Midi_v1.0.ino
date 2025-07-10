@@ -1,4 +1,6 @@
 #include <MIDI.h>
+#include <EEPROM.h>  // 添加EEPROM库
+
 
 enum MidiMessageType {
   CONTROL_CHANGE,  // CC消息
@@ -70,10 +72,17 @@ struct MidiBuffer {
 
 MidiBuffer midiBuffer;  // MIDI消息缓冲区
 
-// int ANALOG_MAX_VALUE = 1023   ; //Arduino
-int ANALOG_MAX_VALUE = 4095;  //Lgt8f328p
+// int ANALOG_MAX_VALUE = 1023;  // Arduino
+int ANALOG_MAX_VALUE = 4095;  // Lgt8f328p
+int EEPROM_ADDRESS = 0;       // EEPROM存储地址
 
 void setup() {
+  // 从EEPROM读取保存的CVMode值
+  byte savedMode = EEPROM.read(EEPROM_ADDRESS);
+  if (savedMode < 4) {  // 验证读取的值是否有效
+    CVMode = savedMode;
+  }
+
   MIDI.begin(MIDI_CHANNEL_OMNI);  // 初始化MIDI
   // Serial.begin(31250);            // 初始化串口通信（用于调试）
 
@@ -94,6 +103,9 @@ void setMode() {
   if (digitalRead(11) == LOW && d11 == 0) {  // 按钮按下
     d11 = 1;
     CVMode = (CVMode + 1) % 4;  // 循环切换0-3
+
+    EEPROM.write(EEPROM_ADDRESS, CVMode);  // 使用update()方法自动检查并写入（仅在值不同时执行写入）//这里由于按钮只会执行一次且必然改变 所以使用write方法
+
     // 模式切换时关闭所有音符
     for (int ch = 1; ch <= 16; ch++) {
       MIDI.sendControlChange(123, 0, ch);
@@ -164,7 +176,6 @@ void processCVInputs() {
           }
         }
         break;
-
 
       case NOTE_VEL:
         // 直接映射CV值到MIDI力度 (30-127范围)
