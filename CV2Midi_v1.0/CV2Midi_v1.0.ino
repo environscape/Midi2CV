@@ -89,6 +89,13 @@ void setup() {
   pinMode(11, INPUT_PULLUP);  // D11按钮引脚(上拉输入)
   pinMode(12, OUTPUT);        // D12输出引脚
   pinMode(13, OUTPUT);        // D13输出引脚
+
+  digitalWrite(12, HIGH);
+  digitalWrite(13, HIGH);
+  delay(3000);  //开机亮灯三秒
+  digitalWrite(12, LOW);
+  digitalWrite(13, LOW);
+  delay(3000);  //然后关灯三秒
 }
 
 void loop() {
