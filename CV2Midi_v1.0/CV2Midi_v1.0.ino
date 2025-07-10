@@ -9,47 +9,48 @@ enum MidiMessageType {
 int CVMode = 0;  // 当前模式(0-3)
 // 四种模式的CV配置表：[通道, 消息类型, 参数值]
 const byte CVConfig0[8][3] = {
-  { 3, NOTE_NUMBER, 0 },      // CV0: 通道3, 音符编号
-  { 3, NOTE_ON_OFF, 0 },      // CV1: 通道3, 音符开关
-  { 3, NOTE_VEL, 0 },         // CV2: 通道3, 音符力度
-  { 3, CONTROL_CHANGE, 54 },  // CV3: 通道3, CC编号1
-  { 3, CONTROL_CHANGE, 56 },  // CV4: 通道3, CC编号2
-  { 3, CONTROL_CHANGE, 74 },  // CV5: 通道3, CC编号3
-  { 3, CONTROL_CHANGE, 71 },  // CV6: 通道3, CC编号4
-  { 3, CONTROL_CHANGE, 93 }   // CV7: 通道4, CC编号5
+  { 3, NOTE_NUMBER, 0 },       // CV0: 通道3, 音符编号
+  { 3, NOTE_ON_OFF, 0 },       // CV1: 通道3, 音符开关
+  { 3, NOTE_VEL, 0 },          // CV2: 通道3, 音符力度
+  { 3, CONTROL_CHANGE, 21 },   // CV3: 通道3, CC编号21
+  { 3, CONTROL_CHANGE, 74 },   // CV4: 通道3, CC编号74
+  { 10, CONTROL_CHANGE, 40 },  // CV5: 通道10, CC编号40
+  { 10, CONTROL_CHANGE, 46 },  // CV6: 通道10, CC编号46
+  { 10, CONTROL_CHANGE, 50 }   // CV7: 通道10, CC编号50
 };
 
 const byte CVConfig1[8][3] = {
-  { 4, NOTE_NUMBER, 0 },     // CV0: 通道4, 音符编号
-  { 4, NOTE_ON_OFF, 0 },     // CV1: 通道4, 音符开关
-  { 4, NOTE_VEL, 0 },        // CV2: 通道4, 音符力度
-  { 4, CONTROL_CHANGE, 6 },  // CV3: 通道4, CC编号6
-  { 4, CONTROL_CHANGE, 7 },  // CV4: 通道4, CC编号7
-  { 4, CONTROL_CHANGE, 8 },  // CV5: 通道4, CC编号8
-  { 4, CONTROL_CHANGE, 9 },  // CV6: 通道4, CC编号9
-  { 4, CONTROL_CHANGE, 10 }  // CV7: 通道5, CC编号10
+  { 3, NOTE_NUMBER, 0 },
+  { 3, NOTE_ON_OFF, 0 },
+  { 3, NOTE_VEL, 0 },
+  { 3, CONTROL_CHANGE, 19 },
+  { 3, CONTROL_CHANGE, 21 },
+  { 3, CONTROL_CHANGE, 74 },
+  { 3, CONTROL_CHANGE, 91 },
+  { 3, CONTROL_CHANGE, 93 }
+
 };
 
 const byte CVConfig2[8][3] = {
-  { 3, NOTE_NUMBER, 0 },      // CV0: 通道3, 音符编号
-  { 3, NOTE_ON_OFF, 0 },      // CV1: 通道3, 音符开关
-  { 3, NOTE_VEL, 0 },         // CV2: 通道3, 音符力度
-  { 3, CONTROL_CHANGE, 80 },  // CV3: 通道3, CC编号1
-  { 3, CONTROL_CHANGE, 81 },  // CV4: 通道3, CC编号2
-  { 3, CONTROL_CHANGE, 82 },  // CV5: 通道3, CC编号3
-  { 3, CONTROL_CHANGE, 83 },  // CV6: 通道3, CC编号4
-  { 3, CONTROL_CHANGE, 84 }   // CV7: 通道4, CC编号5
+  { 4, NOTE_NUMBER, 0 },
+  { 4, NOTE_ON_OFF, 0 },
+  { 4, NOTE_VEL, 0 },
+  { 4, CONTROL_CHANGE, 19 },
+  { 4, CONTROL_CHANGE, 21 },
+  { 4, CONTROL_CHANGE, 74 },
+  { 4, CONTROL_CHANGE, 91 },
+  { 4, CONTROL_CHANGE, 93 }
 };
 
 const byte CVConfig3[8][3] = {
-  { 10, NOTE_NUMBER, 0 },      // CV0: 通道6, 音符编号
-  { 10, NOTE_ON_OFF, 0 },      // CV1: 通道6, 音符开关
-  { 10, NOTE_VEL, 0 },         // CV2: 通道6, 音符力度
-  { 10, CONTROL_CHANGE, 14 },  // CV3: 通道6, CC编号16
-  { 10, CONTROL_CHANGE, 15 },  // CV4: 通道6, CC编号17
-  { 10, CONTROL_CHANGE, 46 },  // CV5: 通道6, CC编号18
-  { 10, CONTROL_CHANGE, 47 },  // CV6: 通道6, CC编号19
-  { 10, CONTROL_CHANGE, 50 }   // CV7: 通道7, CC编号20
+  { 10, CONTROL_CHANGE, 14 },
+  { 10, CONTROL_CHANGE, 17 },
+  { 10, CONTROL_CHANGE, 40 },
+  { 10, CONTROL_CHANGE, 42 },
+  { 10, CONTROL_CHANGE, 46 },
+  { 10, CONTROL_CHANGE, 48 },
+  { 10, CONTROL_CHANGE, 50 },
+  { 10, CONTROL_CHANGE, 80 }
 };
 
 MIDI_CREATE_DEFAULT_INSTANCE();
@@ -107,23 +108,23 @@ void setMode() {
 void view() {
   switch (CVMode) {
     case 0:
-      digitalWrite(12, HIGH);
-      digitalWrite(13, HIGH);
+      digitalWrite(12, LOW);
+      digitalWrite(13, LOW);
       currentConfig = &CVConfig0;
       break;
     case 1:
-      digitalWrite(12, HIGH);
-      digitalWrite(13, LOW);
+      digitalWrite(12, LOW);
+      digitalWrite(13, HIGH);
       currentConfig = &CVConfig1;
       break;
     case 2:
-      digitalWrite(12, LOW);
-      digitalWrite(13, HIGH);
+      digitalWrite(12, HIGH);
+      digitalWrite(13, LOW);
       currentConfig = &CVConfig2;
       break;
     case 3:
-      digitalWrite(12, LOW);
-      digitalWrite(13, LOW);
+      digitalWrite(12, HIGH);
+      digitalWrite(13, HIGH);
       currentConfig = &CVConfig3;
       break;
   }
@@ -163,13 +164,13 @@ void processCVInputs() {
         }
         break;
 
-       
+
       case NOTE_VEL:
         // 直接映射CV值到MIDI力度 (30-127范围)
         midiBuffer.velocity = constrain(map(cvValue, 0, ANALOG_MAX_VALUE, 30, 127), 0, 127);
         break;
-        
-      case CONTROL_CHANGE: 
+
+      case CONTROL_CHANGE:
         // 直接发送CC消息
         byte ccValue = map(cvValue, 0, ANALOG_MAX_VALUE, 0, 127);
         MIDI.sendControlChange(param, ccValue, channel);
