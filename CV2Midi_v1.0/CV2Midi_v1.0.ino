@@ -7,7 +7,8 @@ enum MidiMessageType {
   NOTE_VEL,        // 音符力度
 };
 int CVMode = 0;  // 当前模式(0-3)
-// 四种模式的CV配置表：[通道, 消息类型, 参数值]
+/*************************************请在下方更改您的配置参数 右侧双斜杠是说明文字********************************************/
+//模式1无灯
 const byte CVConfig0[8][3] = {
   { 3, NOTE_NUMBER, 0 },       // CV0: 通道3, 音符编号
   { 3, NOTE_ON_OFF, 0 },       // CV1: 通道3, 音符开关
@@ -18,7 +19,7 @@ const byte CVConfig0[8][3] = {
   { 10, CONTROL_CHANGE, 46 },  // CV6: 通道10, CC编号46
   { 10, CONTROL_CHANGE, 50 }   // CV7: 通道10, CC编号50
 };
-
+//模式2绿灯
 const byte CVConfig1[8][3] = {
   { 3, NOTE_NUMBER, 0 },
   { 3, NOTE_ON_OFF, 0 },
@@ -28,9 +29,8 @@ const byte CVConfig1[8][3] = {
   { 3, CONTROL_CHANGE, 74 },
   { 3, CONTROL_CHANGE, 91 },
   { 3, CONTROL_CHANGE, 93 }
-
 };
-
+//模式3红灯
 const byte CVConfig2[8][3] = {
   { 4, NOTE_NUMBER, 0 },
   { 4, NOTE_ON_OFF, 0 },
@@ -41,7 +41,7 @@ const byte CVConfig2[8][3] = {
   { 4, CONTROL_CHANGE, 91 },
   { 4, CONTROL_CHANGE, 93 }
 };
-
+//模式4黄灯
 const byte CVConfig3[8][3] = {
   { 10, CONTROL_CHANGE, 14 },
   { 10, CONTROL_CHANGE, 17 },
@@ -52,6 +52,7 @@ const byte CVConfig3[8][3] = {
   { 10, CONTROL_CHANGE, 50 },
   { 10, CONTROL_CHANGE, 80 }
 };
+/*************************************修改您的配置参数到此为止********************************************/
 
 MIDI_CREATE_DEFAULT_INSTANCE();
 
