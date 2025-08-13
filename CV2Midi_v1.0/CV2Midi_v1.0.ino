@@ -72,8 +72,8 @@ struct MidiBuffer {
 
 MidiBuffer midiBuffer;  // MIDI消息缓冲区
 
-// int ANALOG_MAX_VALUE = 1023;  // Arduino
-int ANALOG_MAX_VALUE = 4095;  // Lgt8f328p
+int ANALOG_MAX_VALUE = 1023;  // Arduino Nano
+// int ANALOG_MAX_VALUE = 4095;  // Lgt8f328p
 int EEPROM_ADDRESS = 0;       // EEPROM存储地址
 
 void setup() {
