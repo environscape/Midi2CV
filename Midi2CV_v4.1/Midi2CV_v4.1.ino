@@ -201,7 +201,13 @@ void controlChange() {
             break;
           case 24:  //切换时钟div //clock_rate setting
             clock_rate = MIDI.getData2() >> 5;
-            clock_max = 24 * clock_div / clock_rate;
+            clock_max = 24 * clock_div / clock_rate;  // 范围0-3
+
+            // byte rate_temp = MIDI.getData2() / 16;      // 1. 将MIDI.getData2()(0-127)均匀映射到0~7（共8档），避免浪费范围   // 127/16≈7.93，取整后0~7
+            // clock_rate = rate_temp + 1;                 // 2. 强制clock_rate≥1，规避除法为0的错误，最终范围1~8
+            // clock_max = (24 * clock_div) / clock_rate;  // 3. 重新计算clock_max，此时clock_rate≥1，无除法错误；clock_rate越大，clock_max越小，翻转越快
+            // if (clock_max < 1) clock_max = 1;           // （可选）限制clock_max最小为1，避免极端情况下clock_max=0导致计数逻辑异常
+            break;
             break;
           case 25:  //调整seq length //length范围:1-16
             seq_length = (MIDI.getData2() >> 3) + 1;
