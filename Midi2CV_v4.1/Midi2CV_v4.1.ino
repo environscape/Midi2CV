@@ -35,10 +35,11 @@ byte poly_on_count = 0;   //当多个音符打开且其中一个音符关闭时�
 byte tmp_last_note1 = -1;
 byte tmp_last_note2 = -1;
 
-byte clock_count = 0;  //clock计数器
-byte clock_max = 24;   //clock分辨率
-int clock_rate = 0;    //Clock速率
-int clock_div = 1;     //Clock div 特殊用途
+unsigned long total_clock = 0;  // 总计数器：累计收到的所有MIDI Clock事件数
+byte clock_count = 0;           //clock计数器
+byte clock_max = 24;            //clock分辨率
+int clock_rate = 0;             //Clock速率
+int clock_div = 1;              //Clock div 特殊用途
 
 byte cc_mode = 0;           //用于更改当前cc映射模式
 byte enable_rand_trig = 0;  // 0不启用 1启用
@@ -97,20 +98,17 @@ void controlChange() {
     // if (MIDI.getChannel()) {
     switch (MIDI.getType()) {
       case midi::Clock:
-        if (clock_count == 0) {
+        clock_count = total_clock % clock_max;  // 步骤1：先基于当前total_clock计算clock_count（第一次时total_clock=0）
+        if (clock_count == 0) {                 // 步骤2：根据clock_count触发电平（第一次时clock_count=0，输出高电平）
           digitalWrite(CLOCK_PIN, HIGH);
-          //  if (cc_mode == 2) sequencerNext();       //音序器执行下一步
-        }
-        if (clock_count != 0) {
+        } else {
           digitalWrite(CLOCK_PIN, LOW);
         }
-        clock_count++;
-        if (clock_count >= clock_max) {
-          clock_count = 0;
-        }
+        total_clock++;  // 步骤3：最后累加总计数器（确保下次计算用更新后的值）
         break;
       case midi::Start:
         clock_count = 0;
+        total_clock = 0;  // 同步重置当前计数
         break;
       case midi::AfterTouchPoly:
         // if (cc_mode == 0) OUT_PWM(CV3_PIN, MIDI.getData2());  //3个cv映射输出力度cv
@@ -200,14 +198,13 @@ void controlChange() {
             seq_vel[seq_select] = MIDI.getData2();
             break;
           case 24:  //切换时钟div //clock_rate setting
-            clock_rate = MIDI.getData2() >> 5;
-            clock_max = 24 * clock_div / clock_rate;  // 范围0-3
+                    // clock_rate = MIDI.getData2() >> 5;
+                    // clock_max = 24 * clock_div / clock_rate;  // 范围0-3
 
-            // byte rate_temp = MIDI.getData2() / 16;      // 1. 将MIDI.getData2()(0-127)均匀映射到0~7（共8档），避免浪费范围   // 127/16≈7.93，取整后0~7
-            // clock_rate = rate_temp + 1;                 // 2. 强制clock_rate≥1，规避除法为0的错误，最终范围1~8
-            // clock_max = (24 * clock_div) / clock_rate;  // 3. 重新计算clock_max，此时clock_rate≥1，无除法错误；clock_rate越大，clock_max越小，翻转越快
-            // if (clock_max < 1) clock_max = 1;           // （可选）限制clock_max最小为1，避免极端情况下clock_max=0导致计数逻辑异常
-            break;
+            byte rate_temp = MIDI.getData2() / 8;  // 0~127映射为0~15
+            clock_rate = rate_temp + 1;             // 1~8，规避0
+            clock_max = (24 * clock_div) / clock_rate;
+            if (clock_max < 1) clock_max = 1;  // 避免clock_max为0
             break;
           case 25:  //调整seq length //length范围:1-16
             seq_length = (MIDI.getData2() >> 3) + 1;
