@@ -40,6 +40,8 @@ byte clock_count = 0;           //clock计数器
 byte clock_max = 24;            //clock分辨率
 int clock_rate = 0;             //Clock速率
 int clock_div = 1;              //Clock div 特殊用途
+long reset_max = 96;            //Reset周期: 默认1小节=96 ticks (新增)
+byte reset_out_enable = 0;      //Reset输出开关: 0为普通GATE2, 1为Reset模式 (新增)
 
 byte cc_mode = 0;           //用于更改当前cc映射模式
 byte enable_rand_trig = 0;  // 0不启用 1启用
@@ -104,6 +106,16 @@ void controlChange() {
         } else {
           digitalWrite(CLOCK_PIN, LOW);
         }
+
+        // Reset输出脉冲逻辑 (新增)
+        if (reset_out_enable == 1) {
+          if ((total_clock % reset_max) == 0) {
+            digitalWrite(GATE2_PIN, HIGH);      // 到达小节起始位，从GATE2输出Reset脉冲
+          } else if ((total_clock % reset_max) == 6) { 
+            digitalWrite(GATE2_PIN, LOW);       // 保持6个tick长度后拉低
+          }
+        }
+
         total_clock++;  // 步骤3：最后累加总计数器（确保下次计算用更新后的值）
         break;
       case midi::Start:
@@ -148,7 +160,7 @@ void controlChange() {
         note_on_count1 = 0;
         digitalWrite(GATE1_PIN, LOW);  //Gate》LOW
         note_on_count2 = 0;
-        digitalWrite(GATE2_PIN, LOW);  //Gate》LOW
+        if (reset_out_enable == 0) digitalWrite(GATE2_PIN, LOW);  //Gate》LOW (如果是Reset模式则不操作)
         poly_on_count = 0;
         break;
       case midi::Stop:
@@ -159,8 +171,9 @@ void controlChange() {
         poly_on_count = 0;
 
         clock_count = 0;
+        total_clock = 0; // 同步重置当前计数器 (新增)
         digitalWrite(GATE1_PIN, LOW);  //Gate》LOW
-        digitalWrite(GATE2_PIN, LOW);  //Gate》LOW
+        if (reset_out_enable == 0) digitalWrite(GATE2_PIN, LOW);  //Gate》LOW (如果是Reset模式则不操作)
         break;
       case midi::ControlChange:
         switch (MIDI.getData1()) {
@@ -197,20 +210,33 @@ void controlChange() {
           case 23:  //vel pitch
             seq_vel[seq_select] = MIDI.getData2();
             break;
-          case 24:  //切换时钟div //clock_rate setting
-                    // clock_rate = MIDI.getData2() >> 5;
-                    // clock_max = 24 * clock_div / clock_rate;  // 范围0-3
-
-            byte rate_temp = MIDI.getData2() / 8;  // 0~127映射为0~15
-            clock_rate = rate_temp + 1;             // 1~8，规避0
-            clock_max = (24 * clock_div) / clock_rate;
-            if (clock_max < 1) clock_max = 1;  // 避免clock_max为0
+          case 24:  //切换时钟div //clock_rate setting (已修改支持6连音)
+            {
+              byte cc_val = MIDI.getData2();
+              if (cc_val < 20) clock_max = 24;      // 1/4 音符
+              else if (cc_val < 40) clock_max = 12; // 1/8 音符
+              else if (cc_val < 60) clock_max = 8;  // 三连音 (1/12)
+              else if (cc_val < 80) clock_max = 6;  // 1/16 音符
+              else if (cc_val < 100) clock_max = 4; // 6连音 (新增: 24/6=4)
+              else clock_max = 3;                   // 1/32 音符
+              clock_max *= clock_div;
+            }
             break;
           case 25:  //调整seq length //length范围:1-16
             seq_length = (MIDI.getData2() >> 3) + 1;
             break;
-          case 26:  //page 预留
-            seq_page = MIDI.getData2() >> 8;
+          case 26:  //Reset周期切换 (1/2/4/8小节) (新增功能)
+            {
+              byte reset_sel = MIDI.getData2() >> 5; // 获取 0, 1, 2, 3 四个档位
+              if (reset_sel == 0) reset_max = 96;    // 1小节
+              else if (reset_sel == 1) reset_max = 192; // 2小节
+              else if (reset_sel == 2) reset_max = 384; // 4小节
+              else reset_max = 768;                   // 8小节
+            }
+            break;
+          case 29:  //Reset输出开关切换 (新增)
+            reset_out_enable = (MIDI.getData2() >= 64) ? 1 : 0; // CC值超过64即开启GATE2作为Reset
+            if (reset_out_enable == 0) digitalWrite(GATE2_PIN, LOW); // 关闭时拉低引脚
             break;
           case 27:  //调整loop mode //范围0-3
             seq_loopmode = MIDI.getData2() >> 5;
@@ -303,6 +329,7 @@ void secondChannel() {
                                    // if (MIDI.read(ch2)) {  //MIDI CH1
     switch (MIDI.getType()) {
       case midi::NoteOn:     //if NoteOn
+        if (reset_out_enable == 1) break; // 如果启用了Reset输出，则跳过物理Gate控制 (新增)
         if (cc_mode != 1) {  //常规通道模式
           note_on_count2++;
           note_no2 = MIDI.getData1() - 24;  //note number
@@ -319,6 +346,7 @@ void secondChannel() {
         }
         break;
       case midi::NoteOff:  //if NoteOff 关闭后
+        if (reset_out_enable == 1) break; // 如果启用了Reset输出，则跳过物理Gate控制 (新增)
         // if (note_on_count2 > 0) note_on_count2--;
         // if (note_on_count2 < 1) {
         if (tmp_last_note2 == MIDI.getData1())
