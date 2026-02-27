@@ -1,5 +1,4 @@
-Midi2CV\_Trs V4.1 使用手册
-
+Midi2CV\_Trs V4.2 使用手册 该版本还处于开发阶段
 
 
 一、硬件及接口介绍
@@ -75,7 +74,7 @@ MIDI 设备可通过 CC10 切换以下 3 种模式（如果你不想修改模式
 | Midi: 复音模式&#xA;      | Clock&#xA;    | Ch1 Poly1 Pitch&#xA; | Ch1 Poly1 On&#xA;  | Ch1 Poly2 Pitch&#xA; | Ch1 Poly2 On&#xA;     | Vel1&#xA;         | Vel2&#xA;             | Mod&#xA;             |
 | 概率模式 \*\*\*&#xA;     | Trig In&#xA;  | 75% Rand Trig&#xA;   | 50% Rand Gate&#xA; | 25% Rand Gate&#xA;   | Gate Rand Length&#xA; | Rand Voltage&#xA; | Rand Voltage Inv&#xA; | Rand Voltage1/2&#xA; |
 
-> \*** 注：任意时刻收到 MIDI 信号，将即刻退出概率模式，返回 MIDI 模式。
+> \*** 注：任意时刻收到 MIDI 信号，将即刻退出概率模式，返回 MIDI 模式。装上D8跳线帽可以使模块开机时自动进入通道3&4模式
 >
 
 四、固件更新说明
