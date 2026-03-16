@@ -66,7 +66,7 @@ void loop() {
   controlChange();  //midi operation
 
   if (cc_mode == 0)  //D12取下 单通道多音符模式
-    firstChannel();
+    singleChannel();
   if (cc_mode == 1)  //D12插上 多通道但音符模式
     multChannel();
 
@@ -139,7 +139,7 @@ void controlChange() {
   }
 }
 
-void firstChannel() {
+void singleChannel() {
   if (MIDI.getChannel() == ch1) {  //MIDI CH1
     switch (MIDI.getType()) {
       case midi::NoteOn:                      //if NoteOn c1是第一个音符

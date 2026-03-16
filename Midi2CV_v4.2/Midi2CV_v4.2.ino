@@ -13,15 +13,16 @@
 #define VER1_TUNER_PIN A1  //调谐引脚
 #define OCT_CONST 68.25    //V/OCT 常量
 
-byte cc_mode = 0;           //用于更改当前cc映射模式
-byte enable_rand_trig = 0;  // 0不启用 1启用
-byte ch1 = 1;
-byte ch2 = 2;
+byte midi_mode = 0;         //用于更改当前cc映射模式
+byte enable_rand_trig = 0;  //概率触发模式启用状态 0不启用 1启用
 
 #include "input_output.h"
 #include "rnd_trig.h"
 
-
+unsigned long total_clock = 0;  // 总计数器：累计收到的所有MIDI Clock事件数
+byte clock_count = 0;           //clock计数器
+byte clock_max = 6;            //clock分辨率
+int clock_rate = 0;             //Clock速率
 
 byte bend_range = 0;
 byte bend_msb = 0;
@@ -30,19 +31,12 @@ int after_bend_pitch = 0;
 
 int note_no1 = 0;  //noteNo=21(A0)～60(A5) total 61,マイナスの値を取るのでint 因为取负值，所以int
 int note_no2 = 0;  //noteNo=21(A0)～60(A5) total 61,マイナスの値を取るのでint 因为取负值，所以int
-int poly_on1 = 0;  //noteNo=21(A0)～60(A5) total 61,マイナスの値を取るのでint 因为取负值，所以int
-int poly_on2 = 0;  //noteNo=21(A0)～60(A5) total 61,マイナスの値を取るのでint 因为取负值，所以int
-
 byte note_on_count1 = 0;  //当多个音符打开且其中一个音符关闭时，最后一个音符不消失。
 byte note_on_count2 = 0;  //当多个音符打开且其中一个音符关闭时，最后一个音符不消失。
 byte tmp_last_note1 = -1;
 byte tmp_last_note2 = -1;
 
-unsigned long total_clock = 0;  // 总计数器：累计收到的所有MIDI Clock事件数
-byte clock_count = 0;           //clock计数器
-byte clock_max = 24;            //clock分辨率
-int clock_rate = 0;             //Clock速率
-int clock_div = 1;              //Clock div 特殊用途
+
 
 MIDI_CREATE_DEFAULT_INSTANCE();  //启用MIDI库
 
@@ -69,14 +63,11 @@ void setup() {
   SPI.setClockDivider(SPI_CLOCK_DIV4);  // クロック(CLK)をシステムクロックの1/4で使用(16MHz/4)
   SPI.setDataMode(SPI_MODE0);           // クロック極性０(LOW)　クロック位相０
 
-  if (digitalRead(CONFIG1_PIN) == 0) {
-    cc_mode = 1;
-    ch1 = 3;
-    ch2 = 4;
-  }  //读取d8跳线帽 默认1 插上0 如果插上给则默认进入
-  if (digitalRead(CONFIG2_PIN) == 0) {
-    cc_mode = 2;
-  }  //读取d12跳线帽 默认1 插上0 如果插上给则默认进入
+  midi_mode = (1 - digitalRead(CONFIG1_PIN)) + (1 - digitalRead(CONFIG2_PIN)) * 2;  //该模式相当于以下四种情况
+  // if (digitalRead(CONFIG1_PIN) == 1 && digitalRead(CONFIG2_PIN) == 1) midi_mode = 0;  //默认模式 什么都不插
+  // if (digitalRead(CONFIG1_PIN) == 0 && digitalRead(CONFIG2_PIN) == 1) midi_mode = 1;  //读取d8d12跳线帽 默认1 插上0
+  // if (digitalRead(CONFIG1_PIN) == 1 && digitalRead(CONFIG2_PIN) == 0) midi_mode = 2;  //读取d8d12跳线帽 默认1 插上0
+  // if (digitalRead(CONFIG1_PIN) == 0 && digitalRead(CONFIG2_PIN) == 0) midi_mode = 3;  //读取d8d12跳线帽 默认1 插上0
 
   digitalWrite(CLOCK_PIN, HIGH);
   digitalWrite(GATE1_PIN, HIGH);
@@ -92,8 +83,16 @@ void loop() {
   if (MIDI.read()) {
     enable_rand_trig = 0;  //随机触发功能: 每当收到midi信号时 就禁用随机触发功能
     controlChange();       //midi cc
-    firstChannel();        //midi ch1
-    secondChannel();       //midi ch2
+    if (midi_mode == 0 || midi_mode == 1) {
+      firstVoct();   //midi ch1
+      secondVoct();  //midi ch2
+    }
+    if (midi_mode == 2) {
+      multCHGate();
+    }
+    if (midi_mode == 3) {
+      singleCHGate();
+    }
   }
 
   timerLoop();  //计时器循环监听
@@ -114,18 +113,56 @@ void controlChange() {
       }
       total_clock++;  // 步骤3：最后累加总计数器（确保下次计算用更新后的值）
       break;
+    case midi::ControlChange:
+      switch (MIDI.getData1()) {
+        case 24:                                 // 切换时钟div //clock_rate setting
+          byte div_zone = MIDI.getData2() / 16;  // 结果：0~7（对应8个区间）
+          switch (div_zone) {                    // 步骤2：按区间映射到目标clock_max（触发阈值）
+            case 0: clock_max = 72; break;       // CC24 0-15 → 1/3次/四分音符
+            case 1: clock_max = 48; break;       // CC24 16-31 → 1/2次/四分音符
+            case 2: clock_max = 24; break;       // CC24 32-47 → 1次/四分音符
+            case 3: clock_max = 12; break;       // CC24 48-63 → 2次/四分音符
+            case 4: clock_max = 8; break;        // CC24 64-79 → 3次/四分音符
+            case 5: clock_max = 6; break;        // CC24 80-95 → 4次/四分音符
+            case 6: clock_max = 4; break;        // CC24 96-111 → 6次/四分音符
+            case 7: clock_max = 3; break;        // CC24 112-127 → 8次/四分音符
+          }
+          if (clock_max < 1) clock_max = 1;  // 步骤3：安全兜底（避免极端值导致clock_max=0，仅防御性判断）
+          break;
+        case 1:  //输出mod转化的CV
+          OUT_PWM(CV3_PIN, MIDI.getData2());
+          break;
+        case 10:  //切换四种模式 //change cc maping in modular
+          midi_mode = MIDI.getData2() >> 5;
+          break;
+      }
+      break;  //ControlChange
+    case midi::AllNotesOff:
+      note_on_count1 = 0;
+      digitalWrite(GATE1_PIN, LOW);  //Gate》LOW
+      note_on_count2 = 0;
+      digitalWrite(GATE2_PIN, LOW);  //Gate》LOW
+      break;
     case midi::Start:
       clock_count = 0;
       total_clock = 0;  // 同步重置当前计数
       break;
+    case midi::Stop:
+      note_on_count1 = 0;
+      note_on_count2 = 0;
+      tmp_last_note1 = -1;
+      tmp_last_note2 = -1;
+      clock_count = 0;
+      digitalWrite(GATE1_PIN, LOW);  //Gate》LOW
+      digitalWrite(GATE2_PIN, LOW);  //Gate》LOW
+      break;
     case midi::AfterTouchPoly:
-      // if (cc_mode == 0) OUT_PWM(CV3_PIN, MIDI.getData2());  //3个cv映射输出力度cv
+      // if (midi_mode == 0) OUT_PWM(CV3_PIN, MIDI.getData2());  //3个cv映射输出力度cv
       break;
     case midi::PitchBend:
       bend_lsb = MIDI.getData1();  //LSB
       bend_msb = MIDI.getData2();  //MSB
       bend_range = bend_msb;       //0 to 127
-
       if (bend_range > 64) {
         after_bend_pitch = OCT_CONST * note_no1 + OCT_CONST * note_no1 * (bend_range - 64) * 4 / 10000;
         OUT_CV1(after_bend_pitch);
@@ -138,60 +175,12 @@ void controlChange() {
         OUT_CV2(after_bend_pitch);
       }
       break;
-    case midi::AllNotesOff:
-      note_on_count1 = 0;
-      digitalWrite(GATE1_PIN, LOW);  //Gate》LOW
-      note_on_count2 = 0;
-      digitalWrite(GATE2_PIN, LOW);  //Gate》LOW
-      break;
-    case midi::Stop:
-      note_on_count1 = 0;
-      note_on_count2 = 0;
-      tmp_last_note1 = -1;
-      tmp_last_note2 = -1;
-
-      clock_count = 0;
-      digitalWrite(GATE1_PIN, LOW);  //Gate》LOW
-      digitalWrite(GATE2_PIN, LOW);  //Gate》LOW
-      break;
-    case midi::ControlChange:
-      switch (MIDI.getData1()) {
-        case 10:  //切换四种模式 //change cc maping in modular
-          cc_mode = MIDI.getData2() >> 5;
-          if (cc_mode == 0) {  //1/2通道模式
-            ch1 = 1;
-            ch2 = 2;
-          }
-          if (cc_mode == 1) {  //3/4通道模式
-            ch1 = 3;
-            ch2 = 4;
-          }
-          if (cc_mode == 2) {  //gate模式 多通道
-            ch1 = 1;
-            ch2 = 2;
-          }
-          if (cc_mode == 3) {  //gate模式 10通道
-            ch1 = 10;
-          }
-          break;
-        case 1:  //输出mod转化的CV
-          OUT_PWM(CV3_PIN, MIDI.getData2());
-          break;
-        case 24:                                 //切换时钟div //clock_rate setting
-                                                 // clock_rate = MIDI.getData2() >> 5;
-                                                 // clock_max = 24 * clock_div / clock_rate;  // 范围0-3
-          byte rate_temp = MIDI.getData2() / 8;  // 0~127映射为0~15
-          clock_rate = rate_temp + 1;            // 1~8，规避0
-          clock_max = (24 * clock_div) / clock_rate;
-          if (clock_max < 1) clock_max = 1;  // 避免clock_max为0
-          break;
-      }
-      break;  //ControlChange
   }
 }
 
-void firstChannel() {
-  if (MIDI.getChannel() == ch1) {  //MIDI CH1
+//mode=0/1时的第一个通道
+void firstVoct() {
+  if (MIDI.getChannel() == (2 * midi_mode + 1)) {  //MIDI CH1
     switch (MIDI.getType()) {
       case midi::NoteOn:  //if NoteOn
         note_on_count1++;
@@ -214,8 +203,9 @@ void firstChannel() {
   }  //MIDI CH1
 }
 
-void secondChannel() {
-  if (MIDI.getChannel() == ch2) {  //MIDI CH2
+//mode=0/1时的第二个通道
+void secondVoct() {
+  if (MIDI.getChannel() == (2 * midi_mode + 2)) {  //MIDI CH2
     switch (MIDI.getType()) {
       case midi::NoteOn:  //if NoteOn
         note_on_count2++;
@@ -235,5 +225,35 @@ void secondChannel() {
           digitalWrite(GATE2_PIN, LOW);  //Gate 》LOW
         break;
     }  //MIDI CH2
+  }
+}
+
+//mode=2时 多通道每个通道触发gate ch为1-7
+void multCHGate() {
+  switch (MIDI.getType()) {
+    case midi::NoteOn:                            //if NoteOn c1是第一个音符
+      digitalWrite(MIDI.getChannel() + 1, HIGH);  //Gate》HIGH
+      break;
+    case midi::NoteOff:
+      digitalWrite(MIDI.getChannel() + 1, LOW);  //Gate》LOW
+      break;
+  }
+}
+
+//mode=3时 ch10单通道多音符触发gate
+void singleCHGate() {
+  if (MIDI.getChannel() == 10) {  //MIDI CH1
+    switch (MIDI.getType()) {
+      case midi::NoteOn:                      //if NoteOn c1是第一个音符
+        int note_tmp = MIDI.getData1() - 24;  //note number
+        if (note_tmp < 9)
+          digitalWrite(note_tmp, HIGH);  //Gate》HIGH
+        break;
+      case midi::NoteOff:
+        int note_tmp2 = MIDI.getData1() - 24;  //note number
+        if (note_tmp < 9)
+          digitalWrite(note_tmp2, LOW);  //Gate》LOW
+        break;
+    }
   }
 }
