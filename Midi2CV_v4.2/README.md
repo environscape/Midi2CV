@@ -67,12 +67,12 @@ MIDI 设备可通过 CC10 切换以下 3 种模式（如果你不想修改模式
 
 
 
-| 模式名称 / 接口名称&#xA;     | Clock&#xA;    | Note1&#xA;           | Gate1&#xA;         | Note2&#xA;           | Gate2&#xA;            | CV1&#xA;          | CV2&#xA;              | CV3&#xA;             |
+| 模式名称 / 接口名称&#xA;     | Clock&#xA;    | Note1&#xA;           | Gate1&#xA;       | CV1&#xA;         | Note2&#xA;           | Gate2&#xA;               | CV2&#xA;              | CV3&#xA;             |
 | -------------------- | ------------- | -------------------- | ------------------ | -------------------- | --------------------- | ----------------- | --------------------- | -------------------- |
-| Midi: 通道 1&2 模式&#xA; | Clock&#xA;    | Ch1 Note Pitch&#xA;  | Ch1 Note On&#xA;   | Ch2 Note Pitch&#xA;  | Ch2 Note On&#xA;      | Vel1&#xA;         | Vel2&#xA;             | Mod&#xA;             |
-| Midi: 通道 3&4 模式&#xA; | Clock1/2&#xA; | Ch3 Note Pitch&#xA;  | Ch3 Note On&#xA;   | Ch4 Note Pitch&#xA;  | Ch4 Note On&#xA;      | Vel1&#xA;         | Vel2&#xA;             | Mod&#xA;             |
-| Midi: 复音模式&#xA;      | Clock&#xA;    | Ch1 Poly1 Pitch&#xA; | Ch1 Poly1 On&#xA;  | Ch1 Poly2 Pitch&#xA; | Ch1 Poly2 On&#xA;     | Vel1&#xA;         | Vel2&#xA;             | Mod&#xA;             |
-| 概率模式 \*\*\*&#xA;     | Trig In&#xA;  | 75% Rand Trig&#xA;   | 50% Rand Gate&#xA; | 25% Rand Gate&#xA;   | Gate Rand Length&#xA; | Rand Voltage&#xA; | Rand Voltage Inv&#xA; | Rand Voltage1/2&#xA; |
+| Midi: 通道 1&2 模式&#xA; | Clock&#xA;    | Ch1 Note Pitch&#xA;  | Ch1 Note On&#xA;   | Vel1&#xA;     | Ch2 Note Pitch&#xA;  | Ch2 Note On&#xA;          | Vel2&#xA;             | Mod&#xA;             |
+| Midi: 通道 3&4 模式&#xA; | Clock1/2&#xA; | Ch3 Note Pitch&#xA;  | Ch3 Note On&#xA;   | Vel1&#xA;   | Ch4 Note Pitch&#xA;  | Ch4 Note On&#xA;            | Vel2&#xA;             | Mod&#xA;             |
+| Midi: 多通道gate模式&#xA;      | Clock&#xA;     | 待增加      |
+| 概率模式 \*\*\*&#xA;     | Gate In&#xA;  | Gate to Trig&#xA;   | 75% Rand Gate&#xA; | 50% Rand Gate&#xA;   | 25% Rand Gate&#xA;| 12% Rand Gate&#xA; | Gate Rand Length&#xA;  | Rand Voltage&#xA; |
 
 > \*** 注：任意时刻收到 MIDI 信号，将即刻退出概率模式，返回 MIDI 模式。装上D8跳线帽可以使模块开机时自动进入通道3&4模式
 >
@@ -120,6 +120,12 @@ MIDI 设备可通过 CC10 切换以下 3 种模式（如果你不想修改模式
 
 
 2.  完善功能说明文档，补充模式切换及接口映射细节。
+
+
+3.  修复3/4通道对d8跳线帽的兼容
+
+
+4.  修改概率模式触发逻辑
 
 
 > （注：文档部分内容可能由 AI 生成）
