@@ -26,8 +26,8 @@ void triggerOn() {
   int randomNum = random(0, 255);
 
   //gate>trig
-  OUT_CV1(4095);
-  OUT_CV1(0);
+  OUT_VOCT1(4095);
+  OUT_VOCT1(0);
   //gate>75%gate
   if (randomNum < 192) {  //
     digitalWrite(GATE1_PIN, 1);
@@ -38,7 +38,7 @@ void triggerOn() {
   }
   //gate>25%gate
   if (randomNum < 64) {
-    OUT_CV2(4095);
+    OUT_VOCT2(4095);
   }
   //gate>12%gate
   if (randomNum < 32) {
@@ -53,10 +53,10 @@ void triggerOn() {
 }
 
 void triggerOff() {
-  OUT_CV1(0);
+  OUT_VOCT1(0);
   digitalWrite(GATE1_PIN, 0);
   OUT_PWM(CV1_PIN, 0);
-  OUT_CV2(0);
+  OUT_VOCT2(0);
   digitalWrite(GATE2_PIN, 0);
 
 }

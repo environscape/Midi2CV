@@ -16,12 +16,12 @@
 byte midi_mode = 0;         //用于更改当前cc映射模式
 byte enable_rand_trig = 0;  //概率触发模式启用状态 0不启用 1启用
 
-#include "input_output.h"
-#include "rnd_trig.h"
+#include "io.h"
+#include "rnd_mode.h"
 
 unsigned long total_clock = 0;  // 总计数器：累计收到的所有MIDI Clock事件数
 byte clock_count = 0;           //clock计数器
-byte clock_max = 6;            //clock分辨率
+byte clock_max = 6;             //clock分辨率
 int clock_rate = 0;             //Clock速率
 
 byte bend_range = 0;
@@ -29,8 +29,8 @@ byte bend_msb = 0;
 byte bend_lsb = 0;
 int after_bend_pitch = 0;
 
-int note_no1 = 0;  //noteNo=21(A0)～60(A5) total 61,マイナスの値を取るのでint 因为取负值，所以int
-int note_no2 = 0;  //noteNo=21(A0)～60(A5) total 61,マイナスの値を取るのでint 因为取负值，所以int
+int note_no1 = 0;
+int note_no2 = 0;
 byte note_on_count1 = 0;  //当多个音符打开且其中一个音符关闭时，最后一个音符不消失。
 byte note_on_count2 = 0;  //当多个音符打开且其中一个音符关闭时，最后一个音符不消失。
 byte tmp_last_note1 = -1;
@@ -129,8 +129,8 @@ void controlChange() {
           }
           if (clock_max < 1) clock_max = 1;  // 步骤3：安全兜底（避免极端值导致clock_max=0，仅防御性判断）
           break;
-        case 1:  //输出mod转化的CV
-          OUT_PWM(CV3_PIN, MIDI.getData2());
+        case 1:                                                  //输出mod转化的CV
+          if (midi_mode < 2) OUT_PWM(CV3_PIN, MIDI.getData2());  //gate模式不做mod触发
           break;
         case 10:  //切换四种模式 //change cc maping in modular
           midi_mode = MIDI.getData2() >> 5;
@@ -165,14 +165,14 @@ void controlChange() {
       bend_range = bend_msb;       //0 to 127
       if (bend_range > 64) {
         after_bend_pitch = OCT_CONST * note_no1 + OCT_CONST * note_no1 * (bend_range - 64) * 4 / 10000;
-        OUT_CV1(after_bend_pitch);
+        OUT_VOCT1(after_bend_pitch);
         after_bend_pitch = OCT_CONST * note_no1 + OCT_CONST * note_no2 * (bend_range - 64) * 4 / 10000;
-        OUT_CV2(after_bend_pitch);
+        OUT_VOCT2(after_bend_pitch);
       } else if (bend_range < 64) {
         after_bend_pitch = OCT_CONST * note_no1 - OCT_CONST * note_no1 * (64 - bend_range) * 4 / 10000;
-        OUT_CV1(after_bend_pitch);
+        OUT_VOCT1(after_bend_pitch);
         after_bend_pitch = OCT_CONST * note_no1 - OCT_CONST * note_no2 * (64 - bend_range) * 4 / 10000;
-        OUT_CV2(after_bend_pitch);
+        OUT_VOCT2(after_bend_pitch);
       }
       break;
   }
@@ -191,7 +191,7 @@ void firstVoct() {
         } else if (note_no1 >= 61) {
           note_no1 = 60;
         }
-        OUT_CV1(OCT_CONST * note_no1);      //V/OCT LSB for DAC》参照          // OUT_CV1(V_OCT[note_no1]);
+        OUT_VOCT1(OCT_CONST * note_no1);    //V/OCT LSB for DAC》参照          // OUT_VOCT1(V_OCT[note_no1]);
         OUT_PWM(CV1_PIN, MIDI.getData2());  //3个cv映射输出力度cv
         digitalWrite(GATE1_PIN, HIGH);      //Gate》HIGH
         break;
@@ -216,7 +216,7 @@ void secondVoct() {
         } else if (note_no2 >= 61) {
           note_no2 = 60;
         }
-        OUT_CV2(OCT_CONST * note_no2);      //V/OCT LSB for DAC》参照
+        OUT_VOCT2(OCT_CONST * note_no2);    //V/OCT LSB for DAC》参照
         OUT_PWM(CV2_PIN, MIDI.getData2());  //3个cv映射输出力度cv
         digitalWrite(GATE2_PIN, HIGH);      //Gate》HIGH
         break;
@@ -231,28 +231,114 @@ void secondVoct() {
 //mode=2时 多通道每个通道触发gate ch为1-7
 void multCHGate() {
   switch (MIDI.getType()) {
-    case midi::NoteOn:                            //if NoteOn c1是第一个音符
-      digitalWrite(MIDI.getChannel() + 1, HIGH);  //Gate》HIGH
+    case midi::NoteOn:  //if NoteOn c1是第一个音符
+      switch (MIDI.getChannel()) {
+        case 1:
+          OUT_VOCT1(4095);
+          break;
+        case 2:
+          digitalWrite(GATE1_PIN, 1);
+          break;
+        case 3:
+          OUT_PWM(CV1_PIN, 127);
+          break;
+        case 4:
+          OUT_VOCT2(4095);
+          break;
+        case 5:
+          digitalWrite(GATE2_PIN, 1);
+          break;
+        case 6:
+          OUT_PWM(CV2_PIN, 127);
+          break;
+        case 7:
+          OUT_PWM(CV3_PIN, 127);
+          break;
+      }
       break;
     case midi::NoteOff:
-      digitalWrite(MIDI.getChannel() + 1, LOW);  //Gate》LOW
+      switch (MIDI.getChannel()) {
+        case 1:
+          OUT_VOCT1(0);
+          break;
+        case 2:
+          digitalWrite(GATE1_PIN, 0);
+          break;
+        case 3:
+          OUT_PWM(CV1_PIN, 0);
+          break;
+        case 4:
+          OUT_VOCT2(0);
+          break;
+        case 5:
+          digitalWrite(GATE2_PIN, 0);
+          break;
+        case 6:
+          OUT_PWM(CV2_PIN, 0);
+          break;
+        case 7:
+          OUT_PWM(CV3_PIN, 0);
+          break;
+      }
       break;
   }
 }
 
 //mode=3时 ch10单通道多音符触发gate
 void singleCHGate() {
-  if (MIDI.getChannel() == 10) {  //MIDI CH1
+  if (MIDI.getChannel() == 10) {     //仅监听MIDI CH10
+    int note_num = MIDI.getData1();  //获取MIDI音符编号
+    int note_mod = note_num % 12;    //计算音符模12（判断音名：C/D/E/F/G/A/B）
     switch (MIDI.getType()) {
-      case midi::NoteOn:                      //if NoteOn c1是第一个音符
-        int note_tmp = MIDI.getData1() - 24;  //note number
-        if (note_tmp < 9)
-          digitalWrite(note_tmp, HIGH);  //Gate》HIGH
+      case midi::NoteOn:     //音符开启逻辑
+        switch (note_mod) {  //仅处理无升降号的自然音，升降号音符直接跳过
+          case 0:            //C音（所有八度的C）→ 对应multCHGate case1
+            OUT_VOCT1(4095);
+            break;
+          case 2:  //D音 → 对应multCHGate case2
+            digitalWrite(GATE1_PIN, HIGH);
+            break;
+          case 4:  //E音 → 对应multCHGate case3
+            OUT_PWM(CV1_PIN, 127);
+            break;
+          case 5:  //F音 → 对应multCHGate case4
+            OUT_VOCT2(4095);
+            break;
+          case 7:  //G音 → 对应multCHGate case5
+            digitalWrite(GATE2_PIN, HIGH);
+            break;
+          case 9:  //A音 → 对应multCHGate case6
+            OUT_PWM(CV2_PIN, 127);
+            break;
+          case 11:  //B音 → 对应multCHGate case7
+            OUT_PWM(CV3_PIN, 127);
+            break;
+        }
         break;
-      case midi::NoteOff:
-        int note_tmp2 = MIDI.getData1() - 24;  //note number
-        if (note_tmp < 9)
-          digitalWrite(note_tmp2, LOW);  //Gate》LOW
+      case midi::NoteOff:  //音符关闭逻辑
+        switch (note_mod) {
+          case 0:  //C音关闭 → 对应multCHGate case1关闭
+            OUT_VOCT1(0);
+            break;
+          case 2:  //D音关闭 → 对应multCHGate case2关闭
+            digitalWrite(GATE1_PIN, LOW);
+            break;
+          case 4:  //E音关闭 → 对应multCHGate case3关闭
+            OUT_PWM(CV1_PIN, 0);
+            break;
+          case 5:  //F音关闭 → 对应multCHGate case4关闭
+            OUT_VOCT2(0);
+            break;
+          case 7:  //G音关闭 → 对应multCHGate case5关闭
+            digitalWrite(GATE2_PIN, LOW);
+            break;
+          case 9:  //A音关闭 → 对应multCHGate case6关闭
+            OUT_PWM(CV2_PIN, 0);
+            break;
+          case 11:  //B音关闭 → 对应multCHGate case7关闭
+            OUT_PWM(CV3_PIN, 0);
+            break;
+        }
         break;
     }
   }

@@ -1,7 +1,7 @@
 const byte LDAC = 9;  //SPI trans setting
 
 //DAC_CV output
-void OUT_CV1(int cv) {
+void OUT_VOCT1(int cv) {
   digitalWrite(LDAC, HIGH);
   digitalWrite(SS, LOW);
   SPI.transfer((cv >> 8) | 0x30);  // H0x30=OUTA/1x
@@ -11,7 +11,7 @@ void OUT_CV1(int cv) {
 }
 
 //DAC_CV2 output
-void OUT_CV2(int cv2) {
+void OUT_VOCT2(int cv2) {
   digitalWrite(LDAC, HIGH);
   digitalWrite(SS, LOW);
   SPI.transfer((cv2 >> 8) | 0xB0);  // H0xB0=OUTB/1x
