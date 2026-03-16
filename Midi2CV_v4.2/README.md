@@ -94,7 +94,10 @@ MIDI 设备可通过 CC10 切换以下 3 种模式（如果你不想修改模式
 | Midi: 多通道gate模式&#xA;      | Clock&#xA;     | 待增加      |
 | 概率模式 \*\*\*&#xA;     | Gate In&#xA;  | Gate to Trig&#xA;   | 75% Rand Gate&#xA; | 50% Rand Gate&#xA;   | 25% Rand Gate&#xA;| 12% Rand Gate&#xA; | Gate Rand Length&#xA;  | Rand Voltage&#xA; |
 
-> \*** 注：任意时刻收到 MIDI 信号，将即刻退出概率模式，返回 MIDI 模式。装上D8跳线帽可以使模块开机时自动进入通道3&4模式
+> \*** 注：任意时刻收到 MIDI 信号，将即刻退出概率模式，返回 MIDI 模式。  
+装上D8跳线帽可以使模块开机时自动进入通道3&4模式  
+装上D12跳线帽可以是模块开机时自动进入多通道Gate模式  
+而CC10消息优先级高于D8/D12跳线帽  
 >
 
 四、固件更新说明
