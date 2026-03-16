@@ -13,13 +13,15 @@
 #define VER1_TUNER_PIN A1  //调谐引脚
 #define OCT_CONST 68.25    //V/OCT 常量
 
-#include "output.h"
-#include "inner_sequencer.h"
-#include "random_trig.h"
-#include "fast_pwm.h"
-
+byte cc_mode = 0;           //用于更改当前cc映射模式
+byte enable_rand_trig = 0;  // 0不启用 1启用
 byte ch1 = 1;
 byte ch2 = 2;
+
+#include "input_output.h"
+#include "rnd_trig.h"
+
+
 
 byte bend_range = 0;
 byte bend_msb = 0;
@@ -42,9 +44,6 @@ byte clock_count = 0;           //clock计数器
 byte clock_max = 24;            //clock分辨率
 int clock_rate = 0;             //Clock速率
 int clock_div = 1;              //Clock div 特殊用途
-
-byte cc_mode = 0;           //用于更改当前cc映射模式
-byte enable_rand_trig = 0;  // 0不启用 1启用
 
 MIDI_CREATE_DEFAULT_INSTANCE();  //启用MIDI库
 
@@ -86,7 +85,6 @@ void setup() {
 
 void loop() {
   // Serial.println("loop");
-
   controlChange();  //midi cc
   firstChannel();   //midi ch1
   secondChannel();  //midi ch2
@@ -179,52 +177,25 @@ void controlChange() {
               ch2 = 4;
               clock_div = 2;
             }
-            if (cc_mode == 2) {  //Seq模式
+            if (cc_mode == 2) {  //gate模式 多通道
               ch1 = 1;
               ch2 = 2;
             }
-            if (cc_mode == 3) {  //复音模式
-              ch1 = 1;
-              ch2 = 2;
+            if (cc_mode == 3) {  //gate模式 10通道
+              ch1 = 10;
             }
             break;
           case 1:  //输出mod转化的CV
             OUT_PWM(CV3_PIN, MIDI.getData2());
             break;
-          case 21:  //seq pitch
-            seq_pitch[seq_select] = MIDI.getData2() >> 1;
-            if (seq_pitch[seq_select] > 60) seq_pitch[seq_select] = 60;
-            break;
-          case 22:  //gate pitch
-            seq_gate[seq_select] = MIDI.getData2() >> 1;
-            break;
-          case 23:  //vel pitch
-            seq_vel[seq_select] = MIDI.getData2();
-            break;
-          case 24:  //切换时钟div //clock_rate setting
-                    // clock_rate = MIDI.getData2() >> 5;
-                    // clock_max = 24 * clock_div / clock_rate;  // 范围0-3
-
+          case 24:                                 //切换时钟div //clock_rate setting
+                                                   // clock_rate = MIDI.getData2() >> 5;
+                                                   // clock_max = 24 * clock_div / clock_rate;  // 范围0-3
             byte rate_temp = MIDI.getData2() / 8;  // 0~127映射为0~15
             clock_rate = rate_temp + 1;            // 1~8，规避0
             clock_max = (24 * clock_div) / clock_rate;
             if (clock_max < 1) clock_max = 1;  // 避免clock_max为0
             break;
-          case 25:  //调整seq length //length范围:1-16
-            seq_length = (MIDI.getData2() >> 3) + 1;
-            break;
-          case 26:  //page 预留
-            seq_page = MIDI.getData2() >> 8;
-            break;
-          case 27:  //调整loop mode //范围0-3
-            seq_loopmode = MIDI.getData2() >> 5;
-            break;
-          case 28:  //调整播放状态 //范围0-3
-            seq_state = MIDI.getData2() >> 5;
-            break;
-        }
-        if (100 < MIDI.getData1() && MIDI.getData1() < 117) {
-          seq_select = MIDI.getData1() - 101;
         }
         break;  //ControlChange
     }
@@ -332,19 +303,4 @@ void secondChannel() {
 
     }  //MIDI CH2
   }
-}
-
-unsigned long timer_start_time = 0;  // 用于记录事件开始时间
-void timerLoop() {
-  if (millis() - timer_start_time >= 10000) {  //事件持续10秒钟或以上
-    // Serial.println("random mode ");
-
-    restoreDefaultPWM();  //恢复pwm
-    enable_rand_trig = 1;
-    triggerListener();
-  }
-}
-
-void timerReset() {
-  timer_start_time = millis();  // 重置开始时间
 }

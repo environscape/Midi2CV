@@ -1,3 +1,9 @@
+unsigned long timer_start_time = 0;  // 用于记录事件开始时间
+
+
+void timerReset() {
+  timer_start_time = millis();  // 重置开始时间
+}
 
 unsigned long mytimer_start_time = 0;       // 用于记录事件开始时间
 unsigned long mytimer_delay_time = 100000;  // 用于记录事件开始时间
@@ -18,7 +24,7 @@ void myTimerReset() {
 
 void triggerOn() {
   int randomNum = random(0, 255);
-  
+
   //rand trig
   if (randomNum < 192) {
     OUT_CV1(4095);
@@ -33,7 +39,7 @@ void triggerOn() {
 
   //rand gate length
   digitalWrite(GATE2_PIN, 1);
-  myTimerStart(random(1, 1024) );//线性改绿曲线
+  myTimerStart(random(1, 1024));  //线性改绿曲线
   // myTimerStart(random(1, 32) * random(1, 32));//幂概率曲线
   myTimerReset();
 
@@ -66,4 +72,16 @@ void triggerListener() {  //In the loop
   }
 
   myTimerLoop();
+}
+
+
+
+void timerLoop() {
+  if (millis() - timer_start_time >= 10000) {  //事件持续10秒钟或以上
+    // Serial.println("random mode ");
+
+    restoreDefaultPWM();  //恢复pwm
+    enable_rand_trig = 1;
+    triggerListener();
+  }
 }
