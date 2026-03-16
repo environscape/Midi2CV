@@ -204,7 +204,6 @@ void controlChange() {
 
 void firstChannel() {
   if (MIDI.getChannel() == ch1) {  //MIDI CH1
-                                   // if (MIDI.read(ch1)) {  //MIDI CH1
     switch (MIDI.getType()) {
       case midi::NoteOn:     //if NoteOn
         if (cc_mode != 1) {  //常规通道模式
@@ -217,39 +216,9 @@ void firstChannel() {
             note_no1 = 60;
           }
 
-
-          // OUT_CV1(V_OCT[note_no1]);
-          OUT_CV1(OCT_CONST * note_no1);                            //V/OCT LSB for DAC》参照
-          /*if (cc_mode == 0)*/ OUT_PWM(CV1_PIN, MIDI.getData2());  //3个cv映射输出力度cv
-          digitalWrite(GATE1_PIN, HIGH);                            //Gate》HIGH
-        } else {                                                    //复音模式
-          poly_on_count++;
-          if (poly_on_count == 1) {
-            // if (poly_on_count % 2 == 1) {
-            poly_on1 = MIDI.getData1() - 24;  //note number
-            int velocity = MIDI.getData2();
-            if (poly_on1 < 0) {
-              poly_on1 = 0;
-            } else if (poly_on1 >= 61) {
-              poly_on1 = 60;
-            }
-            OUT_CV1(OCT_CONST * poly_on1);                 //V/OCT LSB for DAC》参照
-            if (cc_mode != 3) OUT_PWM(CV2_PIN, velocity);  //3个cv映射输出力度cv
-            digitalWrite(GATE1_PIN, HIGH);                 //Gate》HIGH
-          }
-          if (poly_on_count == 2) {
-            // if (poly_on_count % 2 == 0) {
-            poly_on2 = MIDI.getData1() - 24;  //note number
-            int velocity = MIDI.getData2();
-            if (poly_on2 < 0) {
-              poly_on2 = 0;
-            } else if (poly_on2 >= 61) {
-              poly_on2 = 60;
-            }
-            OUT_CV2(OCT_CONST * poly_on2);           //V/OCT LSB for DAC》参照
-            if (cc_mode == 0) OUT_PWM(5, velocity);  //3个cv映射输出力度cv
-            digitalWrite(GATE2_PIN, HIGH);           //Gate》HIGH
-          }
+          OUT_CV1(OCT_CONST * note_no1);      //V/OCT LSB for DAC》参照          // OUT_CV1(V_OCT[note_no1]);
+          OUT_PWM(CV1_PIN, MIDI.getData2());  //3个cv映射输出力度cv
+          digitalWrite(GATE1_PIN, HIGH);      //Gate》HIGH
         }
         break;
       case midi::NoteOff:
@@ -259,11 +228,9 @@ void firstChannel() {
         } else {                           //双复音模式
           poly_on_count--;
           if (poly_on_count == 0) {
-            // if (poly_on_count % 2 == 0) {
             digitalWrite(GATE1_PIN, LOW);  //Gate 》LOW
           }
           if (poly_on_count == 1) {
-            // if (poly_on_count % 2 == 1) {
             digitalWrite(GATE2_PIN, LOW);  //Gate 》LOW
           }
         }
@@ -294,11 +261,8 @@ void secondChannel() {
         }
         break;
       case midi::NoteOff:  //if NoteOff 关闭后
-        // if (note_on_count2 > 0) note_on_count2--;
-        // if (note_on_count2 < 1) {
         if (tmp_last_note2 == MIDI.getData1())
           digitalWrite(GATE2_PIN, LOW);  //Gate 》LOW
-        // }
         break;
 
     }  //MIDI CH2
