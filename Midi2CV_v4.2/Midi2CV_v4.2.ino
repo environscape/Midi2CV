@@ -69,9 +69,14 @@ void setup() {
   SPI.setClockDivider(SPI_CLOCK_DIV4);  // クロック(CLK)をシステムクロックの1/4で使用(16MHz/4)
   SPI.setDataMode(SPI_MODE0);           // クロック極性０(LOW)　クロック位相０
 
-  if (digitalRead(CONFIG1_PIN) == 0) cc_mode = 1;  //读取d8跳线帽 默认1 插上0 如果插上给则默认进入
-  if (digitalRead(CONFIG2_PIN) == 0) cc_mode = 2;  //读取d12跳线帽 默认1 插上0 如果插上给则默认进入
-  // cc_mode = 2;
+  if (digitalRead(CONFIG1_PIN) == 0) {
+    cc_mode = 1;
+    ch1 = 3;
+    ch2 = 4;
+  }  //读取d8跳线帽 默认1 插上0 如果插上给则默认进入
+  if (digitalRead(CONFIG2_PIN) == 0) {
+    cc_mode = 2;
+  }  //读取d12跳线帽 默认1 插上0 如果插上给则默认进入
 
   digitalWrite(CLOCK_PIN, HIGH);
   digitalWrite(GATE1_PIN, HIGH);
