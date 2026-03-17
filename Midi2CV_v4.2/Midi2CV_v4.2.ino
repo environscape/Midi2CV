@@ -288,7 +288,7 @@ void multCHGate() {
 
 //mode=3时 ch10单通道多音符触发gate
 void singleCHGate() {
-  if (MIDI.getChannel() == 10) {     //仅监听MIDI CH10
+  if (MIDI.getChannel() == 1) {     //仅监听MIDI CH10
     int note_num = MIDI.getData1();  //获取MIDI音符编号
     int note_mod = note_num % 12;    //计算音符模12（判断音名：C/D/E/F/G/A/B）
     switch (MIDI.getType()) {
