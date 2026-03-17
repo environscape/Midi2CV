@@ -82,7 +82,6 @@ void loop() {
   // Serial.println("loop");
   if (MIDI.read()) {
     enable_rand_trig = 0;  //随机触发功能: 每当收到midi信号时 就禁用随机触发功能
-    controlChange();       //midi cc
     if (midi_mode < 2) {
       firstVoct();   //midi ch1
       secondVoct();  //midi ch2
@@ -93,6 +92,7 @@ void loop() {
     if (midi_mode == 3) {
       singleCHGate();
     }
+    controlChange();  //midi cc
   }
 
   timerLoop();  //计时器循环监听
@@ -288,7 +288,7 @@ void multCHGate() {
 
 //mode=3时 ch10单通道多音符触发gate
 void singleCHGate() {
-  if (MIDI.getChannel() == 1) {     //仅监听MIDI CH10
+  if (MIDI.getChannel() == 1) {      //仅监听MIDI CH10
     int note_num = MIDI.getData1();  //获取MIDI音符编号
     int note_mod = note_num % 12;    //计算音符模12（判断音名：C/D/E/F/G/A/B）
     switch (MIDI.getType()) {
