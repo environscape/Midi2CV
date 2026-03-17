@@ -83,7 +83,7 @@ void loop() {
   if (MIDI.read()) {
     enable_rand_trig = 0;  //随机触发功能: 每当收到midi信号时 就禁用随机触发功能
     controlChange();       //midi cc
-    if (midi_mode == 0 || midi_mode == 1) {
+    if (midi_mode < 2) {
       firstVoct();   //midi ch1
       secondVoct();  //midi ch2
     }
@@ -115,19 +115,21 @@ void controlChange() {
       break;
     case midi::ControlChange:
       switch (MIDI.getData1()) {
-        case 24:                                 // 切换时钟div //clock_rate setting
-          byte div_zone = MIDI.getData2() / 16;  // 结果：0~7（对应8个区间）
-          switch (div_zone) {                    // 步骤2：按区间映射到目标clock_max（触发阈值）
-            case 0: clock_max = 72; break;       // CC24 0-15 → 1/3次/四分音符
-            case 1: clock_max = 48; break;       // CC24 16-31 → 1/2次/四分音符
-            case 2: clock_max = 24; break;       // CC24 32-47 → 1次/四分音符
-            case 3: clock_max = 12; break;       // CC24 48-63 → 2次/四分音符
-            case 4: clock_max = 8; break;        // CC24 64-79 → 3次/四分音符
-            case 5: clock_max = 6; break;        // CC24 80-95 → 4次/四分音符
-            case 6: clock_max = 4; break;        // CC24 96-111 → 6次/四分音符
-            case 7: clock_max = 3; break;        // CC24 112-127 → 8次/四分音符
+        case 24:  // 切换时钟div //clock_rate setting
+          {
+            byte div_zone = MIDI.getData2() / 16;  // 结果：0~7（对应8个区间）
+            switch (div_zone) {                    // 步骤2：按区间映射到目标clock_max（触发阈值）
+              case 0: clock_max = 72; break;       // CC24 0-15 → 1/3次/四分音符
+              case 1: clock_max = 48; break;       // CC24 16-31 → 1/2次/四分音符
+              case 2: clock_max = 24; break;       // CC24 32-47 → 1次/四分音符
+              case 3: clock_max = 12; break;       // CC24 48-63 → 2次/四分音符
+              case 4: clock_max = 8; break;        // CC24 64-79 → 3次/四分音符
+              case 5: clock_max = 6; break;        // CC24 80-95 → 4次/四分音符
+              case 6: clock_max = 4; break;        // CC24 96-111 → 6次/四分音符
+              case 7: clock_max = 3; break;        // CC24 112-127 → 8次/四分音符
+            }
+            if (clock_max < 1) clock_max = 1;  // 步骤3：安全兜底（避免极端值导致clock_max=0，仅防御性判断）
           }
-          if (clock_max < 1) clock_max = 1;  // 步骤3：安全兜底（避免极端值导致clock_max=0，仅防御性判断）
           break;
         case 1:                                                  //输出mod转化的CV
           if (midi_mode < 2) OUT_PWM(CV3_PIN, MIDI.getData2());  //gate模式不做mod触发
