@@ -46,7 +46,7 @@ void triggerOn() {
   }
   //rand gate length
   OUT_PWM(CV2_PIN, 127);
-  myTimerStart(random(1, 1024));  //线性改绿曲线  // myTimerStart(random(1, 32) * random(1, 32));//幂概率曲线
+  myTimerStart(random(1, 4095));  //线性改绿曲线  // myTimerStart(random(1, 32) * random(1, 32));//幂概率曲线
   myTimerReset();
   //RND level
   analogWrite(CV3_PIN, randomNum);  //inv
