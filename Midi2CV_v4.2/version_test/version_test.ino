@@ -7,6 +7,7 @@ void setup() {
 //测试a0引脚的情况
 // 电路板v4.0版本以下 DA0为高电平
 // 电路板v4.0版本及以上 DA0为低电平
+// 读取A1的模拟值0-1023 转化为0.8-1.2的调谐系数
 void loop() {
   Serial.print(" DA0=");
   Serial.print(digitalRead(A0));
