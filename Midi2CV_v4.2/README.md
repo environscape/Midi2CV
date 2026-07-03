@@ -94,13 +94,13 @@ MIDI 设备可通过 CC10 切换以下 4 种模式；
 | Midi: 通道1/2模式&#xA; | Clock&#xA;    | Ch1 Note Pitch&#xA;  | Ch1 Note On&#xA;   | Vel1&#xA;     | Ch2 Note Pitch&#xA;  | Ch2 Note On&#xA;          | Vel2&#xA;             | Mod&#xA;             |
 | Midi: 通道3/4模式&#xA; | Clock&#xA; | Ch3 Note Pitch&#xA;  | Ch3 Note On&#xA;   | Vel1&#xA;   | Ch4 Note Pitch&#xA;  | Ch4 Note On&#xA;            | Vel2&#xA;             | Mod&#xA;             |
 | Midi: 多通道gate模式&#xA;      | Clock&#xA;     | Ch1 任意音符      | Ch2 任意音符      | Ch3 任意音符      | Ch4 任意音符      | Ch5 任意音符      | Ch6 任意音符      | Ch7 任意音符      |
-| Midi: 通道10 gate模式&#xA;      | Clock&#xA;     | Ch1 C      |  Ch1 D        |  Ch1 E        |  Ch1 F        |  Ch1 G        |  Ch1 A        |  Ch1 B        |
+| Midi: 通道1 gate模式&#xA;      | Clock&#xA;     | Ch1 C      |  Ch1 D        |  Ch1 E        |  Ch1 F        |  Ch1 G        |  Ch1 A        |  Ch1 B        |
 | 概率模式 \*\*\*&#xA;     | Gate In&#xA;  | Gate to Trig&#xA;   | 75% Rand Gate&#xA; | 50% Rand Gate&#xA;   | 25% Rand Gate&#xA;| 12% Rand Gate&#xA; | Gate Rand Length&#xA;  | Rand Voltage&#xA; |
 
 > \*** 注：任意时刻收到 MIDI 信号，将即刻退出概率模式，返回 MIDI 模式。  
 装上D8跳线帽可以使模块开机时自动进入通道3&4模式  
 装上D12跳线帽可以使模块开机时自动进入多通道Gate模式  
-同时装上D8D12跳线可以使模块开机时自动进入通道10 gate模式
+同时装上D8D12跳线可以使模块开机时自动进入通道1 gate模式
 要使D8/D12跳线帽生效 您需要重启模块 而CC10消息将覆盖D8/D12的配置 因此即使您配置了D8/D12跳线帽，依然可以在演奏中通过发送CC10来修改当前patch的工作模式
 若 10 秒内无 MIDI 信号输入，将自动进入概率模式。
 >
@@ -116,7 +116,7 @@ MIDI 设备可通过 CC10 切换以下 4 种模式；
 
 
 
-(如果您会使用arduino ide来修改程序 则可以用一下方式刷新固件)
+(如果您会使用arduino ide来修改程序 则可以用以下方式刷新固件)
 
 1.  安装 Arduino IDE（官方下载地址：[https://www.arduino.cc/en/software](https://www.arduino.cc/en/software)）。
 
