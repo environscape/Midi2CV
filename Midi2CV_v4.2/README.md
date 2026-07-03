@@ -145,4 +145,4 @@ MIDI 设备可通过 CC10 切换以下 4 种模式；
 1.  点击左上角 “上传” 按钮（右箭头图标），等待右下角提示 “上传完成” 后，重新装回跳线帽，完成固件更新。
 
 
-(如果您想直接升级 请访问https://environscape.github.io/CodingInspire/support.html 来下在xloader 并使用hex文件进行升级)
+(如果您想直接升级 请访问https://environscape.github.io/CodingInspire/support.html 来下载 xloader工具 并使用hex文件进行升级)
