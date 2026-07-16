@@ -88,7 +88,7 @@ MIDI 设备可通过 CC10 切换以下 4 种模式；
 如果您想快速升级而无需安装 Arduino IDE，可以使用 xloader 工具配合 hex 文件进行升级：
 
 1. 访问 [https://environscape.github.io/CodingInspire/support.html](https://environscape.github.io/CodingInspire/support.html) 下载 xloader 工具
-2. 下载本项目的 hex 固件文件 https://environscape.github.io/CodingInspire/support/firmware/Midi2CV_v4.2_atmega168.ino.hex
+2. 下载本项目的 hex 固件文件 https://environscape.github.io/CodingInspire/support/firmware/Midi2CV_v4.2_atmega168.hex
 3. 使用 USB 数据线将模块连接至计算机
 4. 打开 xloader 工具，选择对应的 hex 文件、设备型号（Arduino Nano Atmega 168p）和 COM 口
 5. 点击上传，等待烧录完成
