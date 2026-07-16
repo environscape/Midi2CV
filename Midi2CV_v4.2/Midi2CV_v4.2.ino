@@ -23,6 +23,7 @@ unsigned long total_clock = 0;  // 总计数器：累计收到的所有MIDI Cloc
 byte clock_count = 0;           //clock计数器
 byte clock_max = 6;             //clock分辨率
 int clock_rate = 0;             //Clock速率
+bool clock_output_enabled = 1;  // 时钟输出启用标志：默认启用，STOP时关闭，START时重新打开
 
 byte bend_range = 0;
 byte bend_msb = 0;
@@ -106,12 +107,14 @@ void controlChange() {
   switch (MIDI.getType()) {
     case midi::Clock:
       clock_count = total_clock % clock_max;  // 步骤1：先基于当前total_clock计算clock_count（第一次时total_clock=0）
-      if (clock_count == 0) {                 // 步骤2：根据clock_count触发电平（第一次时clock_count=0，输出高电平）
-        digitalWrite(CLOCK_PIN, HIGH);
-      } else {
-        digitalWrite(CLOCK_PIN, LOW);
+      if (clock_output_enabled) {             // 步骤2：时钟输出启用时才操作CLOCK_PIN
+        if (clock_count == 0) {               // 步骤3：根据clock_count触发电平（第一次时clock_count=0，输出高电平）
+          digitalWrite(CLOCK_PIN, HIGH);
+        } else {
+          digitalWrite(CLOCK_PIN, LOW);
+        }
       }
-      total_clock++;  // 步骤3：最后累加总计数器（确保下次计算用更新后的值）
+      total_clock++;  // 步骤4：最后累加总计数器（确保下次计算用更新后的值）
       break;
     case midi::ControlChange:
       switch (MIDI.getData1()) {
@@ -146,10 +149,13 @@ void controlChange() {
       digitalWrite(GATE2_PIN, LOW);  //Gate》LOW
       break;
     case midi::Start:
+      clock_output_enabled = 1;  // 重新启用时钟输出
       clock_count = 0;
       total_clock = 0;  // 同步重置当前计数
       break;
     case midi::Stop:
+      clock_output_enabled = 0;  // 禁用时钟输出
+      digitalWrite(CLOCK_PIN, LOW);  // 停止时钟信号，留给用户手动归零
       note_on_count1 = 0;
       note_on_count2 = 0;
       tmp_last_note1 = -1;
