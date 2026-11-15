@@ -24,16 +24,19 @@ byte clock_max = 6;             //clock分辨率
 int clock_rate = 0;             //Clock速率
 bool clock_output_enabled = 1;  // 时钟输出启用标志：默认启用，STOP时关闭，START时重新打开
 
-byte bend_range = 0;
 byte bend_msb = 0;
 byte bend_lsb = 0;
 int after_bend_pitch = 0;
 
 int note_no1 = 0;
 int note_no2 = 0;
-int poly_on1 = 0;        //mode=1复音第一声部音高
-int poly_on2 = 0;        //mode=1复音第二声部音高
-byte poly_on_count = 0;  //mode=1复音的音符计数
+int poly_on1 = 0;             //mode=1复音第一声部音高
+int poly_on2 = 0;             //mode=1复音第二声部音高
+int poly_note1 = -1;          //mode=1声部1当前音符，-1为空闲
+int poly_note2 = -1;          //mode=1声部2当前音符，-1为空闲
+unsigned long poly_seq1 = 0;  //声部1分配顺序，用于抢占最旧声部
+unsigned long poly_seq2 = 0;  //声部2分配顺序
+unsigned long poly_tick = 0;  //分配顺序计数器
 byte tmp_last_note1 = -1;
 byte tmp_last_note2 = -1;
 
@@ -141,14 +144,12 @@ void controlChange() {
           break;
         case 10:  //切换四种模式 //change cc maping in modular
           midi_mode = MIDI.getData2() >> 5;
-          poly_on_count = 0;  //切换模式时清空复音计数，避免沿用旧状态
+          resetPoly();  //切换模式时清空复音状态并关闭Gate
           break;
       }
       break;  //ControlChange
     case midi::AllNotesOff:
-      poly_on_count = 0;
-      digitalWrite(GATE1_PIN, LOW);  //Gate》LOW
-      digitalWrite(GATE2_PIN, LOW);  //Gate》LOW
+      resetPoly();
       break;
     case midi::Start:
       clock_output_enabled = 1;  // 重新启用时钟输出
@@ -158,46 +159,28 @@ void controlChange() {
     case midi::Stop:
       clock_output_enabled = 0;  // 禁用时钟输出
       digitalWrite(CLOCK_PIN, LOW);  // 停止时钟信号，留给用户手动归零
-      poly_on_count = 0;
+      resetPoly();
       tmp_last_note1 = -1;
       tmp_last_note2 = -1;
       clock_count = 0;
-      digitalWrite(GATE1_PIN, LOW);  //Gate》LOW
-      digitalWrite(GATE2_PIN, LOW);  //Gate》LOW
       break;
     case midi::AfterTouchPoly:
       // if (midi_mode == 0) OUT_PWM(CV3_PIN, MIDI.getData2());  //3个cv映射输出力度cv
       break;
-    case midi::PitchBend:
-      bend_lsb = MIDI.getData1();  //LSB
-      bend_msb = MIDI.getData2();  //MSB
-      bend_range = bend_msb;       //0 to 127
-      if (bend_range > 64) {
-        if (midi_mode == 1) {  //复音模式：两声部按各自音高弯音
-          after_bend_pitch = OCT_CONST * poly_on1 + OCT_CONST * poly_on1 * (bend_range - 64) * 4 / 10000;
-          OUT_VOCT1(after_bend_pitch);
-          after_bend_pitch = OCT_CONST * poly_on2 + OCT_CONST * poly_on2 * (bend_range - 64) * 4 / 10000;
-          OUT_VOCT2(after_bend_pitch);
-        } else {
-          after_bend_pitch = OCT_CONST * note_no1 + OCT_CONST * note_no1 * (bend_range - 64) * 4 / 10000;
-          OUT_VOCT1(after_bend_pitch);
-          after_bend_pitch = OCT_CONST * note_no1 + OCT_CONST * note_no2 * (bend_range - 64) * 4 / 10000;
-          OUT_VOCT2(after_bend_pitch);
-        }
-      } else if (bend_range < 64) {
-        if (midi_mode == 1) {  //复音模式：两声部按各自音高弯音
-          after_bend_pitch = OCT_CONST * poly_on1 - OCT_CONST * poly_on1 * (64 - bend_range) * 4 / 10000;
-          OUT_VOCT1(after_bend_pitch);
-          after_bend_pitch = OCT_CONST * poly_on2 - OCT_CONST * poly_on2 * (64 - bend_range) * 4 / 10000;
-          OUT_VOCT2(after_bend_pitch);
-        } else {
-          after_bend_pitch = OCT_CONST * note_no1 - OCT_CONST * note_no1 * (64 - bend_range) * 4 / 10000;
-          OUT_VOCT1(after_bend_pitch);
-          after_bend_pitch = OCT_CONST * note_no1 - OCT_CONST * note_no2 * (64 - bend_range) * 4 / 10000;
-          OUT_VOCT2(after_bend_pitch);
-        }
-      }
+    case midi::PitchBend: {
+      bend_lsb = MIDI.getData1();                  //LSB
+      bend_msb = MIDI.getData2();                  //MSB
+      int bend_value = (bend_msb << 7) | bend_lsb;  //14bit：0~16383，中点8192
+      //基准音高：复音模式用各声部音高，其余模式用双通道音高，两路各自独立
+      long base1 = OCT_CONST * ((midi_mode == 1) ? poly_on1 : note_no1);
+      long base2 = OCT_CONST * ((midi_mode == 1) ? poly_on2 : note_no2);
+      //偏移比例与原7bit公式一致；回中(bend_value=8192)时恢复基准音高
+      after_bend_pitch = base1 + base1 * (long)(bend_value - 8192) / 320000;
+      OUT_VOCT1(after_bend_pitch);
+      after_bend_pitch = base2 + base2 * (long)(bend_value - 8192) / 320000;
+      OUT_VOCT2(after_bend_pitch);
       break;
+    }
   }
 }
 
@@ -249,41 +232,73 @@ void secondVoct() {
   }
 }
 
-//mode=1时 CH1单通道双复音(移植自v3.2)
+//mode=1复音状态复位：关闭两路Gate并清空声部
+void resetPoly() {
+  poly_note1 = -1;
+  poly_note2 = -1;
+  digitalWrite(GATE1_PIN, LOW);
+  digitalWrite(GATE2_PIN, LOW);
+}
+
+//mode=1 向指定声部分配音符；声部已在发声时先拉低Gate再立即拉高，重新触发包络
+void polyAssign(byte voice, int note, byte velocity) {
+  int pitch = note - 24;  //note number
+  if (pitch < 0) {
+    pitch = 0;
+  } else if (pitch >= 61) {
+    pitch = 60;
+  }
+  if (voice == 1) {
+    bool was_active = (poly_note1 != -1);
+    poly_note1 = note;
+    poly_on1 = pitch;
+    poly_seq1 = poly_tick++;
+    OUT_VOCT1(OCT_CONST * poly_on1);  //V/OCT LSB for DAC》参照
+    OUT_PWM(CV1_PIN, velocity);       //第一声部力度输出到CV1
+    if (was_active) {
+      digitalWrite(GATE1_PIN, LOW);
+    }
+    digitalWrite(GATE1_PIN, HIGH);  //Gate》HIGH
+  } else {
+    bool was_active = (poly_note2 != -1);
+    poly_note2 = note;
+    poly_on2 = pitch;
+    poly_seq2 = poly_tick++;
+    OUT_VOCT2(OCT_CONST * poly_on2);  //V/OCT LSB for DAC》参照
+    OUT_PWM(CV2_PIN, velocity);       //第二声部力度输出到CV2
+    if (was_active) {
+      digitalWrite(GATE2_PIN, LOW);
+    }
+    digitalWrite(GATE2_PIN, HIGH);  //Gate》HIGH
+  }
+}
+
+//mode=1时 CH1单通道双复音：按音符追踪声部，两声部占满时抢占最旧声部
 void dualPoly() {
   if (MIDI.getChannel() != 1) return;  //仅监听MIDI CH1
+  int note = MIDI.getData1();
   switch (MIDI.getType()) {
     case midi::NoteOn:
-      poly_on_count++;
-      if (poly_on_count == 1) {
-        poly_on1 = MIDI.getData1() - 24;  //note number
-        if (poly_on1 < 0) {
-          poly_on1 = 0;
-        } else if (poly_on1 >= 61) {
-          poly_on1 = 60;
-        }
-        OUT_VOCT1(OCT_CONST * poly_on1);    //V/OCT LSB for DAC》参照
-        OUT_PWM(CV1_PIN, MIDI.getData2());  //第一声部力度输出到CV1
-        digitalWrite(GATE1_PIN, HIGH);      //Gate》HIGH
-      }
-      if (poly_on_count == 2) {
-        poly_on2 = MIDI.getData1() - 24;  //note number
-        if (poly_on2 < 0) {
-          poly_on2 = 0;
-        } else if (poly_on2 >= 61) {
-          poly_on2 = 60;
-        }
-        OUT_VOCT2(OCT_CONST * poly_on2);    //V/OCT LSB for DAC》参照
-        OUT_PWM(CV2_PIN, MIDI.getData2());  //第二声部力度输出到CV2
-        digitalWrite(GATE2_PIN, HIGH);      //Gate》HIGH
+      if (note == poly_note1) {  //同音重复：刷新该声部并重新触发
+        polyAssign(1, note, MIDI.getData2());
+      } else if (note == poly_note2) {
+        polyAssign(2, note, MIDI.getData2());
+      } else if (poly_note1 == -1) {  //优先空闲声部
+        polyAssign(1, note, MIDI.getData2());
+      } else if (poly_note2 == -1) {
+        polyAssign(2, note, MIDI.getData2());
+      } else if (poly_seq1 <= poly_seq2) {  //占满时抢占最早分配的声部
+        polyAssign(1, note, MIDI.getData2());
+      } else {
+        polyAssign(2, note, MIDI.getData2());
       }
       break;
-    case midi::NoteOff:
-      if (poly_on_count > 0) poly_on_count--;  //防止计数下溢
-      if (poly_on_count == 0) {
+    case midi::NoteOff:  //只释放音符匹配的声部，与按下/松开顺序无关
+      if (note == poly_note1) {
+        poly_note1 = -1;
         digitalWrite(GATE1_PIN, LOW);  //Gate》LOW
-      }
-      if (poly_on_count == 1) {
+      } else if (note == poly_note2) {
+        poly_note2 = -1;
         digitalWrite(GATE2_PIN, LOW);  //Gate》LOW
       }
       break;
