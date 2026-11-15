@@ -86,7 +86,6 @@ void timerLoop() {
     // Serial.println("random mode ");
 
     restoreDefaultPWM();  //恢复pwm
-    enable_rand_trig = 1;
     triggerListener();
   }
 }
