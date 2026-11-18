@@ -13,7 +13,8 @@
 #define VER1_TUNER_PIN A1  //调谐引脚
 #define OCT_CONST 68.25    //V/OCT 常量
 
-byte midi_mode = 0;  //用于更改当前cc映射模式
+byte midi_mode = 0;    //用于更改当前cc映射模式
+byte listen_ch = 1;    //当前监听的基准通道，1~16，由CC25切换，默认CH1
 
 #include "io.h"
 #include "rnd_mode.h"
@@ -144,8 +145,21 @@ void controlChange() {
           break;
         case 10:  //切换四种模式 //change cc maping in modular
           midi_mode = MIDI.getData2() >> 5;
-          resetPoly();  //切换模式时清空复音状态并关闭Gate
+          if (midi_mode == 0 && listen_ch > 15) listen_ch = 15;  //模式0占2路，基准最大CH15
+          if (midi_mode == 2 && listen_ch > 10) listen_ch = 10;  //模式2占7路，基准最大CH10
+          resetPoly();                                           //切换模式时清空复音状态并关闭Gate
           break;
+        case 25: {                                      //切换监听基准通道
+          byte ch = (MIDI.getData2() >> 3) + 1;         // 每8个值一档：0-7→CH1 … 120-127→CH16
+          if (midi_mode == 0 && ch > 15) ch = 15;       // 模式0占2路，基准最大CH15（第二路CH16）
+          if (midi_mode == 2 && ch > 10) ch = 10;       // 模式2占7路，基准最大CH10（第7路CH16）
+          listen_ch = ch;
+          resetPoly();       //换通道时关闭两路Gate并清空声部
+          if (midi_mode == 2) resetGateMode();  //模式2的CV/Note输出是保持型的，换通道时一并归零
+          tmp_last_note1 = -1;                  //清空单音记录，避免旧通道的NoteOff误关Gate
+          tmp_last_note2 = -1;
+          break;
+        }
       }
       break;  //ControlChange
     case midi::AllNotesOff:
@@ -186,7 +200,7 @@ void controlChange() {
 
 //mode=0时的第一个通道
 void firstVoct() {
-  if (MIDI.getChannel() == (2 * midi_mode + 1)) {  //MIDI CH1
+  if (MIDI.getChannel() == listen_ch) {  //基准通道
     switch (MIDI.getType()) {
       case midi::NoteOn:  //if NoteOn
         note_no1 = MIDI.getData1() - 24;  //note number
@@ -205,12 +219,12 @@ void firstVoct() {
           digitalWrite(GATE1_PIN, LOW);  //Gate 》LOW
         break;
     }
-  }  //MIDI CH1
+  }  //基准通道
 }
 
 //mode=0时的第二个通道
 void secondVoct() {
-  if (MIDI.getChannel() == (2 * midi_mode + 2)) {  //MIDI CH2
+  if (MIDI.getChannel() == listen_ch + 1) {  //基准通道的下一个，模式0基准最大CH15所以不会越界
     switch (MIDI.getType()) {
       case midi::NoteOn:  //if NoteOn
         note_no2 = MIDI.getData1() - 24;  //note number
@@ -228,7 +242,7 @@ void secondVoct() {
         if (tmp_last_note2 == MIDI.getData1())
           digitalWrite(GATE2_PIN, LOW);  //Gate 》LOW
         break;
-    }  //MIDI CH2
+    }  //基准通道+1
   }
 }
 
@@ -273,9 +287,9 @@ void polyAssign(byte voice, int note, byte velocity) {
   }
 }
 
-//mode=1时 CH1单通道双复音：按音符追踪声部，两声部占满时抢占最旧声部
+//mode=1时 基准通道双复音：按音符追踪声部，两声部占满时抢占最旧声部
 void dualPoly() {
-  if (MIDI.getChannel() != 1) return;  //仅监听MIDI CH1
+  if (MIDI.getChannel() != listen_ch) return;  //仅监听基准通道
   int note = MIDI.getData1();
   switch (MIDI.getType()) {
     case midi::NoteOn:
@@ -305,11 +319,24 @@ void dualPoly() {
   }
 }
 
-//mode=2时 多通道每个通道触发gate ch为1-7
+//mode=2输出归零：7路输出都是保持型的，换通道/换模式时统一复位
+void resetGateMode() {
+  OUT_VOCT1(0);
+  digitalWrite(GATE1_PIN, LOW);
+  OUT_PWM(CV1_PIN, 0);
+  OUT_VOCT2(0);
+  digitalWrite(GATE2_PIN, LOW);
+  OUT_PWM(CV2_PIN, 0);
+  OUT_PWM(CV3_PIN, 0);
+}
+
+//mode=2时 以基准通道为起点，连续7个通道依次触发gate
 void multCHGate() {
+  int ch = MIDI.getChannel() - listen_ch + 1;  // 相对基准通道的序号，1~7为有效输出
+  if (ch < 1 || ch > 7) return;
   switch (MIDI.getType()) {
     case midi::NoteOn:  //if NoteOn c1是第一个音符
-      switch (MIDI.getChannel()) {
+      switch (ch) {
         case 1:
           OUT_VOCT1(4095);
           break;
@@ -334,7 +361,7 @@ void multCHGate() {
       }
       break;
     case midi::NoteOff:
-      switch (MIDI.getChannel()) {
+      switch (ch) {
         case 1:
           OUT_VOCT1(0);
           break;
@@ -361,9 +388,9 @@ void multCHGate() {
   }
 }
 
-//mode=3时 ch10单通道多音符触发gate
+//mode=3时 基准通道单通道多音符触发gate
 void singleCHGate() {
-  if (MIDI.getChannel() == 1) {      //仅监听MIDI CH10
+  if (MIDI.getChannel() == listen_ch) {  //仅监听基准通道
     int note_num = MIDI.getData1();  //获取MIDI音符编号
     int note_mod = note_num % 12;    //计算音符模12（判断音名：C/D/E/F/G/A/B）
     switch (MIDI.getType()) {
